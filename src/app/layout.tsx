@@ -47,41 +47,56 @@ export default function RootLayout({
       </head>
       <body className="bg-navy-950 text-parchment-100 antialiased min-h-screen flex flex-col">
         {/* Navigation */}
-        <nav className="sticky top-0 z-50 bg-navy-950/90 backdrop-blur-md border-b border-navy-700">
+        <nav className="sticky top-0 z-50 bg-navy-950/80 backdrop-blur-xl border-b border-white/5">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center justify-between h-14">
-              {/* Logo — flush left */}
-              <Link href="/" className="flex items-center gap-2 group">
-                <span
-                  className="text-gold-400 text-xl font-bold group-hover:text-gold-300 transition-colors"
-                  style={{ fontFamily: 'serif', direction: 'rtl' }}
-                >
-                  משנה יומי
-                </span>
-                <span className="text-slate-500 text-xs tracking-widest uppercase hidden sm:block">
-                  Mishna Yomi
-                </span>
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <Link href="/" className="flex items-center gap-3 group">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-600 to-gold-400 flex items-center justify-center shadow-gold flex-shrink-0">
+                  <span className="text-navy-950 text-sm font-bold" style={{ fontFamily: 'serif' }}>מ</span>
+                </div>
+                <div className="flex flex-col">
+                  <span
+                    className="text-gold-400 text-base font-bold leading-none group-hover:text-gold-300 transition-colors"
+                    style={{ fontFamily: 'serif', direction: 'rtl' }}
+                  >
+                    משנה יומי
+                  </span>
+                  <span className="text-slate-600 text-[10px] tracking-widest uppercase leading-none mt-0.5 hidden sm:block">
+                    Mishna Yomi
+                  </span>
+                </div>
               </Link>
 
-              {/* Nav links (center) */}
-              <div className="hidden md:flex items-center gap-6">
-                <Link href="/learn" className="nav-link">Learn</Link>
-                <Link href="/browse" className="nav-link">Browse</Link>
-                <Link href="/progress" className="nav-link">Progress</Link>
-                <Link href="/calendar" className="nav-link">Calendar</Link>
+              {/* Nav links */}
+              <div className="hidden md:flex items-center gap-1">
+                {[
+                  { href: '/learn', label: 'Learn' },
+                  { href: '/browse', label: 'Browse' },
+                  { href: '/progress', label: 'Progress' },
+                  { href: '/calendar', label: 'Calendar' },
+                ].map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="px-4 py-2 text-sm text-slate-400 hover:text-parchment-100 hover:bg-white/5 rounded-lg transition-all"
+                  >
+                    {label}
+                  </Link>
+                ))}
               </div>
 
-              {/* CTA — flush right */}
-              <div className="flex items-center gap-3">
+              {/* Right side */}
+              <div className="flex items-center gap-2">
                 <Link
                   href="/auth/login"
-                  className="text-sm text-slate-400 hover:text-parchment-100 transition-colors"
+                  className="text-sm text-slate-500 hover:text-slate-300 transition-colors px-3 py-2"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/learn"
-                  className="btn-gold text-sm px-4 py-2 text-navy-950"
+                  className="btn-gold text-sm px-4 py-2 rounded-lg text-navy-950 font-semibold"
                 >
                   Start Learning
                 </Link>
@@ -90,35 +105,38 @@ export default function RootLayout({
           </div>
         </nav>
 
-        {/* Main */}
         <main className="flex-1">
           {children}
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-navy-800 py-8 px-4 mt-12">
-          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-center sm:text-left">
-              <span
-                className="text-gold-500 text-lg block"
-                style={{ fontFamily: 'serif', direction: 'rtl' }}
-              >
-                משנה יומי
-              </span>
-              <span className="text-slate-600 text-xs">
-                Following R&apos; Shloimie Friedman&apos;s daily podcast
-              </span>
+        <footer className="border-t border-white/5 py-10 px-4 mt-16">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-md bg-gradient-to-br from-gold-600 to-gold-400 flex items-center justify-center">
+                  <span className="text-navy-950 text-xs font-bold" style={{ fontFamily: 'serif' }}>מ</span>
+                </div>
+                <div>
+                  <span className="text-gold-500 text-sm font-medium block" style={{ fontFamily: 'serif', direction: 'rtl' }}>
+                    משנה יומי
+                  </span>
+                  <span className="text-slate-700 text-xs">
+                    R&apos; Shloimie Friedman&apos;s daily podcast
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-6 text-slate-600 text-xs">
+                <Link href="/learn" className="hover:text-slate-400 transition-colors">Learn</Link>
+                <Link href="/browse" className="hover:text-slate-400 transition-colors">Browse</Link>
+                <Link href="/progress" className="hover:text-slate-400 transition-colors">Progress</Link>
+                <Link href="/calendar" className="hover:text-slate-400 transition-colors">Calendar</Link>
+                <Link href="/auth/login" className="hover:text-slate-400 transition-colors">Sign In</Link>
+              </div>
+              <p className="text-slate-700 text-xs">
+                4,192 Mishnayot · 63 Tractates · 6 Sedarim
+              </p>
             </div>
-            <div className="flex items-center gap-6 text-slate-600 text-xs">
-              <Link href="/learn" className="hover:text-slate-400 transition-colors">Learn</Link>
-              <Link href="/browse" className="hover:text-slate-400 transition-colors">Browse</Link>
-              <Link href="/progress" className="hover:text-slate-400 transition-colors">Progress</Link>
-              <Link href="/calendar" className="hover:text-slate-400 transition-colors">Calendar</Link>
-              <Link href="/auth/login" className="hover:text-slate-400 transition-colors">Sign In</Link>
-            </div>
-            <p className="text-slate-700 text-xs">
-              4,192 Mishnayot · 63 Tractates · 6 Sedarim
-            </p>
           </div>
         </footer>
       </body>
