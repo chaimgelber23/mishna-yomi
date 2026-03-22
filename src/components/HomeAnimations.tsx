@@ -171,6 +171,20 @@ export default function HomeAnimations({ today, totalMishnayot, totalTractates, 
                 </Link>
               </motion.div>
 
+              {/* Dedication */}
+              <motion.div
+                className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full border"
+                style={{ background: 'rgba(201,169,110,0.06)', borderColor: 'rgba(201,169,110,0.2)' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.72 }}>
+                <span style={{ color: 'var(--gold)', fontSize: '11px' }}>✦</span>
+                <span className="text-xs italic" style={{ color: 'var(--gold-dark)', letterSpacing: '0.02em' }}>
+                  L&apos;ilui Nishmas Etta Ahuva bas Yaakov
+                </span>
+                <span style={{ color: 'var(--gold)', fontSize: '11px' }}>✦</span>
+              </motion.div>
+
               {/* Stats */}
               <motion.div
                 className="flex items-center gap-6 text-sm"
@@ -331,9 +345,18 @@ export default function HomeAnimations({ today, totalMishnayot, totalTractates, 
               style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', color: 'var(--navy)', fontWeight: 600 }}>
               &ldquo;כָּל יִשְׂרָאֵל יֵשׁ לָהֶם חֵלֶק לָעוֹלָם הַבָּא&rdquo;
             </p>
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            <p className="text-sm mb-8" style={{ color: 'var(--muted)' }}>
               All of Israel has a share in the World to Come — Sanhedrin 10:1
             </p>
+
+            {/* Dedication */}
+            <div className="flex items-center justify-center gap-3 mt-2">
+              <div className="h-px w-12" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,169,110,0.4))' }} />
+              <p className="text-xs italic" style={{ color: 'var(--gold-dark)' }}>
+                L&apos;ilui Nishmas Etta Ahuva bas Yaakov
+              </p>
+              <div className="h-px w-12" style={{ background: 'linear-gradient(90deg, rgba(201,169,110,0.4), transparent)' }} />
+            </div>
           </div>
         </FadeIn>
       </section>

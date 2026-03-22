@@ -56,8 +56,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               ))}
             </div>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
               4,192 Mishnayot · 63 Tractates · 6 Sedarim
+              <span className="block mt-1 italic" style={{ color: 'var(--gold-dark)', fontSize: '11px' }}>
+                L&apos;ilui Nishmas Etta Ahuva bas Yaakov
+              </span>
             </p>
           </div>
         </footer>
