@@ -1,4 +1,4 @@
-import Parser from 'rss-parser';
+// Edge-compatible RSS parser — no Node.js dependencies
 
 export interface ParsedEpisode {
   guid: string;
@@ -16,154 +16,118 @@ export interface ParsedEpisode {
 
 const RSS_URL = 'https://anchor.fm/s/efb348c8/podcast/rss';
 
-/**
- * Parse episode title to extract tractate and mishna references
- * Handles patterns like:
- * - "Mishna Yomi - Kerisus 5:4-5"         (same chapter)
- * - "Mishna Yomi - Kerisus 5:8-6:1"       (cross-chapter)
- * - "Mishna Yomi - Bava Kamma 3:4-5"      (tractate with space)
- */
-export function parseMishnaTitle(title: string): {
-  tractate: string | null;
-  chapterFrom: number | null;
-  mishnaFrom: number | null;
-  chapterTo: number | null;
-  mishnaTo: number | null;
-} {
-  const nullResult = { tractate: null, chapterFrom: null, mishnaFrom: null, chapterTo: null, mishnaTo: null };
+/** Extract a single XML tag value */
+function tag(xml: string, name: string): string | null {
+  // Try CDATA first
+  const cdataRe = new RegExp(`<${name}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${name}>`, 'i');
+  const cdata = xml.match(cdataRe);
+  if (cdata) return cdata[1].trim();
 
-  // Remove prefix like "Mishna Yomi - " or "Mishna Yomi: "
-  let cleaned = title.replace(/^Mishna\s+Yomi\s*[-:]\s*/i, '').trim();
+  const re = new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, 'i');
+  const m = xml.match(re);
+  return m ? m[1].trim() : null;
+}
 
-  // Cross-chapter: "Tractate Name X:Y-W:Z"
-  const crossChapterRegex = /^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+):(\d+)\s*$/;
-  const crossMatch = cleaned.match(crossChapterRegex);
-  if (crossMatch) {
-    return {
-      tractate: crossMatch[1].trim(),
-      chapterFrom: parseInt(crossMatch[2], 10),
-      mishnaFrom: parseInt(crossMatch[3], 10),
-      chapterTo: parseInt(crossMatch[4], 10),
-      mishnaTo: parseInt(crossMatch[5], 10),
-    };
-  }
-
-  // Same chapter: "Tractate Name X:Y-Z"
-  const sameChapterRegex = /^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+)\s*$/;
-  const sameMatch = cleaned.match(sameChapterRegex);
-  if (sameMatch) {
-    return {
-      tractate: sameMatch[1].trim(),
-      chapterFrom: parseInt(sameMatch[2], 10),
-      mishnaFrom: parseInt(sameMatch[3], 10),
-      chapterTo: parseInt(sameMatch[2], 10), // same chapter
-      mishnaTo: parseInt(sameMatch[4], 10),
-    };
-  }
-
-  // Single mishna: "Tractate Name X:Y"
-  const singleRegex = /^(.+?)\s+(\d+):(\d+)\s*$/;
-  const singleMatch = cleaned.match(singleRegex);
-  if (singleMatch) {
-    return {
-      tractate: singleMatch[1].trim(),
-      chapterFrom: parseInt(singleMatch[2], 10),
-      mishnaFrom: parseInt(singleMatch[3], 10),
-      chapterTo: parseInt(singleMatch[2], 10),
-      mishnaTo: parseInt(singleMatch[3], 10),
-    };
-  }
-
-  return nullResult;
+/** Extract an XML attribute value */
+function attr(xml: string, tagName: string, attrName: string): string | null {
+  const re = new RegExp(`<${tagName}[^>]+${attrName}="([^"]*)"`, 'i');
+  const m = xml.match(re);
+  return m ? m[1] : null;
 }
 
 /**
- * Parse iTunes duration string (e.g. "00:15:30" or "930") to seconds
+ * Parse episode title → tractate + mishna references
+ * Handles:
+ *   "Mishna Yomi - Kerisus 5:8-6:1"   (cross-chapter)
+ *   "Mishna Yomi - Kerisus 5:4-5"      (same chapter)
+ *   "Mishna Yomi - Kerisus 5:4"        (single)
  */
-function parseDuration(duration: string | undefined): number | null {
-  if (!duration) return null;
+export function parseMishnaTitle(title: string) {
+  const nil = { tractate: null, chapterFrom: null, mishnaFrom: null, chapterTo: null, mishnaTo: null };
+  const cleaned = title.replace(/^Mishna\s+Yomi\s*[-:]\s*/i, '').trim();
 
-  // Numeric string (seconds)
-  if (/^\d+$/.test(duration)) {
-    return parseInt(duration, 10);
-  }
+  // Cross-chapter: "Name X:Y-W:Z"
+  const cross = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+):(\d+)\s*$/);
+  if (cross) return {
+    tractate: cross[1].trim(),
+    chapterFrom: +cross[2], mishnaFrom: +cross[3],
+    chapterTo:   +cross[4], mishnaTo:   +cross[5],
+  };
 
-  // HH:MM:SS or MM:SS
-  const parts = duration.split(':').map(Number);
-  if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  }
-  if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
-  }
+  // Same chapter: "Name X:Y-Z"
+  const same = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+)\s*$/);
+  if (same) return {
+    tractate: same[1].trim(),
+    chapterFrom: +same[2], mishnaFrom: +same[3],
+    chapterTo:   +same[2], mishnaTo:   +same[4],
+  };
 
+  // Single: "Name X:Y"
+  const single = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*$/);
+  if (single) return {
+    tractate: single[1].trim(),
+    chapterFrom: +single[2], mishnaFrom: +single[3],
+    chapterTo:   +single[2], mishnaTo:   +single[3],
+  };
+
+  return nil;
+}
+
+/** Parse iTunes duration string → seconds */
+function parseDuration(d: string | null): number | null {
+  if (!d) return null;
+  if (/^\d+$/.test(d)) return +d;
+  const parts = d.split(':').map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
   return null;
 }
 
-type FeedItem = {
-  guid?: string;
-  title?: string;
-  contentSnippet?: string;
-  content?: string;
-  enclosure?: { url?: string };
-  itunes?: { duration?: string };
-  pubDate?: string;
-  isoDate?: string;
-};
-
-/**
- * Fetch and parse the RSS feed
- */
+/** Fetch and parse the Mishna Yomi RSS feed using native fetch */
 export async function fetchRSSFeed(): Promise<ParsedEpisode[]> {
-  const parser = new Parser({
-    customFields: {
-      item: [
-        ['itunes:duration', 'itunes.duration'],
-        ['itunes:summary', 'itunes.summary'],
-      ],
-    },
+  const res = await fetch(RSS_URL, {
+    headers: { 'User-Agent': 'MishnaYomi/1.0 RSS reader' },
+    // Cloudflare edge fetch — no cache
+    cache: 'no-store',
   });
 
-  const feed = await parser.parseURL(RSS_URL);
+  if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
+  const xml = await res.text();
+
+  // Split into <item> blocks
+  const itemBlocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? [];
   const episodes: ParsedEpisode[] = [];
 
-  for (const item of (feed.items as FeedItem[])) {
-    const audioUrl = item.enclosure?.url;
+  for (const block of itemBlocks) {
+    const audioUrl = attr(block, 'enclosure', 'url');
     if (!audioUrl) continue;
 
-    const guid = item.guid || audioUrl;
-    const title = item.title || 'Untitled';
-    const description = item.contentSnippet || item.content || item.itunes?.duration || null;
-    const duration = parseDuration(item.itunes?.duration);
-    const publishedAt = item.isoDate ? new Date(item.isoDate) : (item.pubDate ? new Date(item.pubDate) : new Date());
-
-    const parsed = parseMishnaTitle(title);
+    const title       = tag(block, 'title') ?? 'Untitled';
+    const guid        = tag(block, 'guid') ?? audioUrl;
+    const description = tag(block, 'description') ?? tag(block, 'itunes:summary') ?? null;
+    const durationRaw = tag(block, 'itunes:duration');
+    const pubDate     = tag(block, 'pubDate') ?? tag(block, 'dc:date');
+    const publishedAt = pubDate ? new Date(pubDate) : new Date();
 
     episodes.push({
       guid,
       title,
-      description: typeof description === 'string' ? description : null,
+      description,
       audioUrl,
-      durationSeconds: duration,
+      durationSeconds: parseDuration(durationRaw),
       publishedAt,
-      ...parsed,
+      ...parseMishnaTitle(title),
     });
   }
 
-  // Sort by published date ascending
   return episodes.sort((a, b) => a.publishedAt.getTime() - b.publishedAt.getTime());
 }
 
-/**
- * Format duration in seconds to MM:SS or HH:MM:SS
- */
+/** Format seconds → M:SS or H:MM:SS */
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   return `${m}:${String(s).padStart(2, '0')}`;
 }

@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 import { getTodaySummary } from '@/lib/calendar';
 import { buildDailyReminderEmail } from '@/lib/email/templates';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {

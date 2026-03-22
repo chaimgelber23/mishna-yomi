@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { fetchRSSFeed } from '@/lib/rss';
 import { getDayNumber } from '@/lib/calendar';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
