@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
-import { FadeIn, StaggerChildren, StaggerItem, CountUp, MagneticButton } from './animations';
+import { FadeIn, StaggerChildren, StaggerItem, MagneticButton } from './animations';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import SubscribeForm from './SubscribeForm';
+import HeroSection from './HeroSection';
 import type { SederInfo } from '@/lib/mishna-data';
 
 interface HomeAnimationsProps {
@@ -64,147 +64,9 @@ const SEDER_PALETTES = [
 ];
 
 export default function HomeAnimations({ today, totalMishnayot, totalTractates, totalSedarim, sedarim }: HomeAnimationsProps) {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 80]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-
   return (
     <>
-      {/* ── HERO ── */}
-      <section ref={heroRef} className="relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(160deg, #FAFAF8 0%, #F7F2EA 40%, #EDE4D0 100%)',
-          minHeight: '92vh',
-          display: 'flex',
-          alignItems: 'center',
-        }}>
-
-        {/* Floating glow blobs */}
-        <motion.div className="absolute pointer-events-none"
-          style={{ top: '-5%', right: '-5%', width: '700px', height: '700px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(201,169,110,0.18) 0%, transparent 65%)' }}
-          animate={{ scale: [1, 1.08, 1], opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} />
-        <motion.div className="absolute pointer-events-none"
-          style={{ bottom: '10%', left: '-8%', width: '500px', height: '500px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(30,58,95,0.07) 0%, transparent 65%)' }}
-          animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.8, 0.5] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 2 }} />
-
-        {/* Hebrew watermark */}
-        <motion.div
-          className="absolute right-0 bottom-0 pointer-events-none select-none hidden xl:block"
-          style={{ fontFamily: 'var(--font-hebrew)', fontSize: '560px', color: 'rgba(30,58,95,0.035)',
-            lineHeight: 1, direction: 'rtl', fontWeight: 700, transform: 'translateY(8%)' }}
-          initial={{ opacity: 0, x: 60 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1.2, delay: 0.4, ease: [0.21, 0.47, 0.32, 0.98] }}>
-          מ
-        </motion.div>
-
-        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="relative">
-          <div className="w-full px-6 lg:px-10" style={{ maxWidth: '1152px', margin: '0 auto' }}>
-            <div className="max-w-2xl py-24 sm:py-32">
-
-              {/* Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-10 text-xs font-semibold tracking-wide border cursor-default">
-                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--gold)' }} />
-                <span style={{ color: 'var(--gold-dark)' }}>Official Mishna Yomit Program</span>
-              </motion.div>
-
-              {/* Hebrew title */}
-              <motion.div
-                className="mb-4 font-bold leading-none"
-                style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', fontSize: 'clamp(64px, 10vw, 104px)', color: 'var(--navy)' }}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2, ease: [0.21, 0.47, 0.32, 0.98] }}>
-                משנה יומי
-              </motion.div>
-
-              {/* Gold divider */}
-              <motion.div className="divider-gold mb-6" style={{ maxWidth: '220px' }}
-                initial={{ opacity: 0, scaleX: 0 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                transition={{ duration: 0.7, delay: 0.4, ease: [0.21, 0.47, 0.32, 0.98] }}>
-                <span style={{ fontSize: '10px', letterSpacing: '0.2em' }}>✦ ✦ ✦</span>
-              </motion.div>
-
-              <motion.h1
-                className="mb-5 leading-tight"
-                style={{ fontFamily: 'var(--font-playfair)', fontSize: 'clamp(28px, 4vw, 44px)', color: 'var(--fg)' }}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.45, ease: [0.21, 0.47, 0.32, 0.98] }}>
-                Daily Mishnah Learning with{' '}
-                <span className="gradient-gold">R&apos; Shloimie Friedman</span>
-              </motion.h1>
-
-              <motion.p
-                className="mb-12 leading-relaxed"
-                style={{ color: 'var(--muted)', fontSize: '1.0625rem', maxWidth: '520px', lineHeight: 1.75 }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.55 }}>
-                Two Mishnayot every day. Follow the official Mishna Yomit calendar,
-                listen to the podcast, track your progress, and complete the entire Mishnah.
-              </motion.p>
-
-              <motion.div
-                className="flex flex-wrap gap-3 mb-12"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.65 }}>
-                <MagneticButton>
-                  <Link href="/learn" className="btn-primary" style={{ fontSize: '0.9375rem', padding: '0.8125rem 2rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    Start Learning Today
-                  </Link>
-                </MagneticButton>
-                <Link href="/browse" className="btn-ghost" style={{ fontSize: '0.9375rem', padding: '0.8125rem 2rem' }}>
-                  Browse Tractates
-                </Link>
-              </motion.div>
-
-              {/* Dedication */}
-              <motion.div
-                className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full border"
-                style={{ background: 'rgba(201,169,110,0.06)', borderColor: 'rgba(201,169,110,0.2)' }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.72 }}>
-                <span style={{ color: 'var(--gold)', fontSize: '11px' }}>✦</span>
-                <span className="text-xs italic" style={{ color: 'var(--gold-dark)', letterSpacing: '0.02em' }}>
-                  L&apos;ilui Nishmas Etta Ahuva bas Yaakov
-                </span>
-                <span style={{ color: 'var(--gold)', fontSize: '11px' }}>✦</span>
-              </motion.div>
-
-              {/* Stats */}
-              <motion.div
-                className="flex items-center gap-6 text-sm"
-                style={{ color: 'var(--muted)' }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.75 }}>
-                <div className="flex items-center gap-1.5">
-                  <CountUp to={4192} duration={2} suffix="" className="font-bold text-base" />
-                  <span>Mishnayot</span>
-                </div>
-                <span style={{ color: 'var(--border)' }}>|</span>
-                <span><strong style={{ color: 'var(--navy)' }}>63</strong> Tractates</span>
-                <span style={{ color: 'var(--border)' }}>|</span>
-                <span><strong style={{ color: 'var(--navy)' }}>6</strong> Sedarim</span>
-              </motion.div>
-            </div>
-          </div>
-        </motion.div>
-      </section>
+      <HeroSection />
 
       {/* ── TODAY'S LESSON ── */}
       <section style={{ background: 'var(--bg)' }} className="py-20">
