@@ -87,8 +87,6 @@ function parseDuration(d: string | null): number | null {
 export async function fetchRSSFeed(): Promise<ParsedEpisode[]> {
   const res = await fetch(RSS_URL, {
     headers: { 'User-Agent': 'MishnaYomi/1.0 RSS reader' },
-    // Cloudflare edge fetch — no cache
-    cache: 'no-store',
   });
 
   if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
