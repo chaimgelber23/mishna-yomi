@@ -12,260 +12,148 @@ export default function HomePage() {
   const totalSedarim = SEDARIM.length;
 
   return (
-    <div className="min-h-screen">
+    <div>
 
-      {/* ── HERO ──────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+      {/* ── HERO ────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #FDFAF4 0%, #FEF3C7 60%, #FDE68A 100%)' }}>
+        {/* Decorative gold arc */}
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #f59e0b 0%, transparent 70%)' }} />
+        <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, #d97706 0%, transparent 70%)' }} />
 
-        {/* Deep background layers */}
-        <div className="absolute inset-0 bg-[#020810]" />
-
-        {/* Stars */}
-        <div className="absolute inset-0 stars-bg opacity-60" />
-
-        {/* Deep radial glow - gold center */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(180,100,10,0.12) 0%, rgba(30,68,128,0.15) 40%, transparent 70%)',
-          }}
-        />
-
-        {/* Horizon glow */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-64"
-          style={{
-            background: 'linear-gradient(to top, rgba(4,13,26,1) 0%, transparent 100%)',
-          }}
-        />
-
-        {/* Large decorative Hebrew letter watermark */}
-        <div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none"
-          style={{
-            fontFamily: 'serif',
-            fontSize: 'clamp(300px, 50vw, 600px)',
-            color: 'rgba(245,158,11,0.03)',
-            lineHeight: 1,
-            direction: 'rtl',
-            fontWeight: 700,
-          }}
-        >
+        {/* Large watermark letter */}
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 select-none pointer-events-none hidden lg:block"
+          style={{ fontFamily: 'serif', fontSize: '320px', color: 'rgba(180,83,9,0.06)', lineHeight: 1, direction: 'rtl', fontWeight: 700 }}>
           מ
         </div>
 
-        {/* Content */}
-        <div className="relative w-full max-w-5xl mx-auto px-4 sm:px-6 py-24 text-center">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
+          <div className="max-w-2xl">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-white/70 border border-gold-300 rounded-full px-4 py-1.5 mb-8 text-xs text-gold-700 font-medium tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
+              Official Mishna Yomit Program
+            </div>
 
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-gold-900/20 border border-gold-700/30 rounded-full px-4 py-1.5 mb-10 text-xs text-gold-400 tracking-wider uppercase font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse" />
-            Daily Mishna Yomit Program
-          </div>
-
-          {/* Hebrew title */}
-          <div className="mb-8">
-            <h1
-              className="text-glow-gold block mb-3"
-              style={{
-                fontFamily: 'serif',
-                direction: 'rtl',
-                fontSize: 'clamp(64px, 12vw, 120px)',
-                lineHeight: 1.1,
-                color: '#fbbf24',
-              }}
-            >
+            {/* Hebrew headline */}
+            <h1 className="font-bold mb-4 leading-none"
+              style={{ fontFamily: 'serif', direction: 'rtl', fontSize: 'clamp(56px, 10vw, 96px)', color: '#92400e' }}>
               משנה יומי
             </h1>
-            <div className="ornament-divider max-w-sm mx-auto mb-4">
-              <span className="text-gold-600 text-xs tracking-widest">✦ ✦ ✦</span>
+
+            <div className="ornament-divider max-w-xs mb-6">
+              <span className="text-gold-500 text-xs tracking-widest">✦ ✦ ✦</span>
             </div>
-            <p className="text-xl sm:text-2xl font-serif text-parchment-100 mb-3">
+
+            <p className="text-2xl sm:text-3xl font-serif text-stone-800 mb-4 leading-snug">
               Daily Mishnah with{' '}
               <span className="gradient-text-gold">R&apos; Shloimie Friedman</span>
             </p>
-            <p className="text-slate-500 text-base max-w-xl mx-auto leading-relaxed">
-              Two Mishnayot every day. Follow the official calendar,
-              listen to the podcast, and complete the entire Mishnah.
+
+            <p className="text-stone-500 text-lg mb-10 leading-relaxed max-w-lg">
+              Two Mishnayot every day. Follow the official calendar, listen to the podcast, and complete the entire Mishnah.
             </p>
-          </div>
 
-          {/* Today chip */}
-          <div className="inline-flex items-center gap-3 bg-navy-800/80 border border-gold-700/30 rounded-2xl px-6 py-3 mb-10 backdrop-blur-sm">
-            <div className="w-8 h-8 rounded-lg bg-gold-900/40 border border-gold-700/30 flex items-center justify-center">
-              <svg className="w-4 h-4 text-gold-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link href="/learn" className="btn-gold px-8 py-3.5 rounded-xl text-base text-center">
+                Start Learning Today
+              </Link>
+              <Link href="/browse" className="btn-ghost px-8 py-3.5 rounded-xl text-base text-center">
+                Browse Tractates
+              </Link>
             </div>
-            <div className="text-left">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Today · Day {today.dayNumber}</p>
-              <p className="text-gold-300 font-semibold text-sm">{today.label}</p>
+
+            <div className="flex items-center gap-5 mt-8 text-sm text-stone-400">
+              <span>{TOTAL_MISHNAYOT.toLocaleString()} Mishnayot</span>
+              <span className="w-1 h-1 rounded-full bg-stone-300" />
+              <span>{totalTractates} Tractates</span>
+              <span className="w-1 h-1 rounded-full bg-stone-300" />
+              <span>{totalSedarim} Sedarim</span>
             </div>
-          </div>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/learn"
-              className="btn-gold px-8 py-3.5 text-sm rounded-xl shadow-gold w-full sm:w-auto text-center font-semibold"
-            >
-              Start Learning Today
-            </Link>
-            <Link
-              href="/browse"
-              className="btn-ghost px-8 py-3.5 text-sm rounded-xl w-full sm:w-auto text-center"
-            >
-              Browse All Tractates
-            </Link>
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-6 mt-12 text-xs text-slate-600">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-gold-700" />
-              {TOTAL_MISHNAYOT.toLocaleString()} Mishnayot
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-slate-700" />
-              {totalTractates} Tractates
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-slate-700" />
-              {totalSedarim} Sedarim
-            </span>
           </div>
         </div>
       </section>
 
-      {/* ── TODAY'S CARD ──────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 -mt-8 relative z-10 mb-24">
-        <div
-          className="rounded-2xl p-6 sm:p-8 border border-gold-700/25"
-          style={{
-            background: 'linear-gradient(135deg, rgba(12,26,53,0.95) 0%, rgba(7,15,31,0.98) 100%)',
-            boxShadow: '0 0 60px rgba(180,83,9,0.12), 0 4px 40px rgba(0,0,0,0.6)',
-          }}
-        >
+      {/* ── TODAY'S LESSON ──────────────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6 relative z-10 mb-20">
+        <div className="card-gold p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
             <div>
-              <p className="text-xs text-gold-600 uppercase tracking-widest mb-2 font-medium">Today&apos;s Lesson</p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gold-300 mb-1">{today.label}</h2>
-              <p className="text-slate-500 text-sm">{today.dateLabel} &nbsp;·&nbsp; Day {today.dayNumber}</p>
+              <p className="text-xs text-gold-600 uppercase tracking-widest font-semibold mb-2">Today&apos;s Lesson · Day {today.dayNumber}</p>
+              <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 mb-1">{today.label}</h2>
+              <p className="text-stone-400 text-sm">{today.dateLabel}</p>
             </div>
-            <Link
-              href="/learn"
-              className="btn-gold px-7 py-3.5 rounded-xl flex-shrink-0 text-sm font-semibold flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
+            <Link href="/learn"
+              className="btn-gold px-7 py-3.5 rounded-xl flex-shrink-0 text-sm flex items-center gap-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               Listen Now
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── FEATURES ──────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-4 mb-24">
+      {/* ── FEATURES ────────────────────────────────────────── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 mb-24">
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-serif text-parchment-50 mb-3">
-            Everything you need to complete the Mishnah
-          </h2>
-          <p className="text-slate-600 max-w-lg mx-auto text-sm">
-            A thoughtfully designed learning platform built around the Mishna Yomit calendar.
-          </p>
+          <h2 className="text-2xl sm:text-3xl font-serif text-stone-900 mb-3">Everything you need to complete the Mishnah</h2>
+          <p className="text-stone-400 max-w-lg mx-auto">A thoughtfully designed learning platform built around the Mishna Yomit program.</p>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
-              icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-              ),
-              title: 'Listen',
-              desc: 'Beautiful audio player with position memory, speed control, and skip buttons.',
-              href: '/learn',
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>,
+              title: 'Listen', desc: 'Audio player with position memory, speed control, and skip buttons.', href: '/learn',
             },
             {
-              icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              ),
-              title: 'Track Progress',
-              desc: 'Visual breakdown by Seder and Tractate. See how far you\'ve come through 63 tractates.',
-              href: '/progress',
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+              title: 'Track Progress', desc: 'Visual breakdown by Seder and Tractate across all 63 tractates.', href: '/progress',
             },
             {
-              icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              ),
-              title: 'Follow Calendar',
-              desc: 'Stay synchronized with the official Mishna Yomit schedule. Always know today\'s 2 Mishnayot.',
-              href: '/calendar',
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+              title: 'Follow Calendar', desc: 'Stay on the official Mishna Yomit schedule. Always know today\'s 2 Mishnayot.', href: '/calendar',
             },
             {
-              icon: (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              ),
-              title: 'Daily Email',
-              desc: 'A beautiful daily reminder with today\'s lesson and a direct listen link.',
-              href: '#subscribe',
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+              title: 'Daily Email', desc: 'A daily reminder with today\'s lesson and a direct listen link.', href: '#subscribe',
             },
           ].map(f => (
-            <Link
-              key={f.title}
-              href={f.href}
-              className="group relative p-6 rounded-2xl border border-white/5 bg-navy-800/50 hover:border-gold-700/30 hover:bg-navy-800 transition-all cursor-pointer overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-gold-900/0 to-gold-900/0 group-hover:from-gold-900/10 group-hover:to-transparent transition-all" />
-              <div className="relative">
-                <div className="w-11 h-11 rounded-xl bg-navy-700 border border-white/5 flex items-center justify-center text-gold-500 mb-4 group-hover:border-gold-700/30 group-hover:bg-gold-900/20 transition-all">
-                  {f.icon}
-                </div>
-                <h3 className="text-base font-semibold text-parchment-100 mb-2 group-hover:text-gold-300 transition-colors">{f.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed group-hover:text-slate-400 transition-colors">{f.desc}</p>
+            <Link key={f.title} href={f.href}
+              className="group card p-6 hover:border-gold-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center text-gold-600 mb-4 group-hover:bg-gold-100 transition-colors">
+                {f.icon}
               </div>
+              <h3 className="font-semibold text-stone-900 mb-1.5 group-hover:text-gold-700 transition-colors">{f.title}</h3>
+              <p className="text-sm text-stone-400 leading-relaxed">{f.desc}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* ── SIX SEDARIM ───────────────────────────────────────── */}
-      <section className="border-y border-white/5 py-20 mb-24" style={{ background: 'rgba(7,15,31,0.8)' }}>
+      {/* ── SIX SEDARIM ─────────────────────────────────────── */}
+      <section className="border-y border-stone-200 bg-stone-50 py-20 mb-24">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-serif text-parchment-100 mb-2">Six Sedarim. 63 Tractates. One journey.</h2>
-            <p className="text-slate-600 text-sm">From Zeraim to Taharot — every mishna in order.</p>
+            <h2 className="text-2xl font-serif text-stone-900 mb-2">Six Sedarim. 63 Tractates. One journey.</h2>
+            <p className="text-stone-400 text-sm">From Zeraim to Taharot — every mishna in order.</p>
           </div>
-
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {SEDARIM.map((seder, i) => {
-              const configs = [
-                { border: 'border-gold-800/30', text: 'text-gold-400', glow: 'rgba(180,83,9,0.08)' },
-                { border: 'border-blue-800/30', text: 'text-blue-400', glow: 'rgba(30,64,175,0.08)' },
-                { border: 'border-purple-800/30', text: 'text-purple-400', glow: 'rgba(88,28,135,0.08)' },
-                { border: 'border-emerald-800/30', text: 'text-emerald-400', glow: 'rgba(6,78,59,0.08)' },
-                { border: 'border-rose-800/30', text: 'text-rose-400', glow: 'rgba(136,19,55,0.08)' },
-                { border: 'border-cyan-800/30', text: 'text-cyan-400', glow: 'rgba(21,94,117,0.08)' },
+              const colors = [
+                { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', sub: 'text-amber-500' },
+                { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', sub: 'text-blue-500' },
+                { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', sub: 'text-purple-500' },
+                { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', sub: 'text-emerald-500' },
+                { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', sub: 'text-rose-500' },
+                { bg: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', sub: 'text-cyan-500' },
               ];
-              const c = configs[i];
+              const c = colors[i];
               return (
-                <div
-                  key={seder.name}
-                  className={`rounded-xl p-4 text-center border ${c.border} transition-all hover:scale-105 cursor-default`}
-                  style={{ background: `linear-gradient(135deg, ${c.glow}, rgba(12,26,53,0.6))` }}
-                >
-                  <span className={`text-base font-bold ${c.text} block mb-1`}>{seder.name}</span>
-                  <span className="text-xs text-white/30 block mb-2">{seder.tractates.length} tractates</span>
-                  <span className={`text-sm font-mono font-bold ${c.text}`}>{seder.totalMishnayot.toLocaleString()}</span>
-                  <span className="text-[10px] text-white/25 block">mishnayot</span>
+                <div key={seder.name} className={`${c.bg} border ${c.border} rounded-xl p-4 text-center hover:shadow-sm transition-all`}>
+                  <span className={`font-bold ${c.text} block mb-1`}>{seder.name}</span>
+                  <span className="text-xs text-stone-400 block mb-2">{seder.tractates.length} tractates</span>
+                  <span className={`text-sm font-bold font-mono ${c.sub}`}>{seder.totalMishnayot.toLocaleString()}</span>
+                  <span className="text-xs text-stone-400 block">mishnayot</span>
                 </div>
               );
             })}
@@ -273,29 +161,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SUBSCRIBE ─────────────────────────────────────────── */}
-      <section id="subscribe" className="max-w-2xl mx-auto px-4 sm:px-6 py-4 mb-24">
+      {/* ── SUBSCRIBE ───────────────────────────────────────── */}
+      <section id="subscribe" className="max-w-2xl mx-auto px-4 sm:px-6 mb-24">
         <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-serif text-parchment-100 mb-3">
-            Get your daily reminder
-          </h2>
-          <p className="text-slate-500 text-sm max-w-md mx-auto">
-            Enter your email and choose a time — we&apos;ll send you today&apos;s 2 Mishnayot with a direct listen link.
+          <h2 className="text-2xl sm:text-3xl font-serif text-stone-900 mb-3">Get your daily reminder</h2>
+          <p className="text-stone-400 text-sm max-w-md mx-auto">
+            Enter your email and choose a time — we&apos;ll send today&apos;s 2 Mishnayot with a direct listen link.
           </p>
         </div>
         <SubscribeForm />
       </section>
 
-      {/* ── QUOTE ─────────────────────────────────────────────── */}
-      <section className="py-16 text-center border-t border-white/5">
+      {/* ── QUOTE ───────────────────────────────────────────── */}
+      <section className="py-16 text-center border-t border-stone-200 bg-amber-50/50">
         <div className="max-w-xl mx-auto px-4">
-          <p
-            className="text-2xl sm:text-3xl text-gold-400 mb-4 leading-relaxed"
-            style={{ fontFamily: 'serif', direction: 'rtl' }}
-          >
+          <p className="text-2xl sm:text-3xl text-gold-700 mb-4 leading-relaxed"
+            style={{ fontFamily: 'serif', direction: 'rtl' }}>
             &ldquo;כָּל יִשְׂרָאֵל יֵשׁ לָהֶם חֵלֶק לָעוֹלָם הַבָּא&rdquo;
           </p>
-          <p className="text-slate-600 text-sm">All of Israel has a share in the World to Come — Sanhedrin 10:1</p>
+          <p className="text-stone-400 text-sm">All of Israel has a share in the World to Come — Sanhedrin 10:1</p>
         </div>
       </section>
 
