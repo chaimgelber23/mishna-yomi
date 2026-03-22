@@ -3,6 +3,8 @@ import { getTodaySummary } from '@/lib/calendar';
 import { TOTAL_MISHNAYOT, MISHNA_STRUCTURE, SEDARIM } from '@/lib/mishna-data';
 import SubscribeForm from '@/components/SubscribeForm';
 
+export const runtime = 'edge';
+
 export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
