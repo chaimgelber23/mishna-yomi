@@ -169,6 +169,13 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   border-radius: 4px;
 }
 
+.footer-link {
+  color: var(--muted);
+  transition: color 0.2s;
+  text-decoration: none;
+}
+.footer-link:hover { color: var(--navy); }
+
 ::selection { background: rgba(201,169,110,0.2); }
 
 ::-webkit-scrollbar { width: 4px; }
