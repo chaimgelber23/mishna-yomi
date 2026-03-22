@@ -36,7 +36,8 @@ export { createAuthClient as createClient };
 
 // Service client — bypasses RLS, no cookies needed
 export function createServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // NEXT_PUBLIC_* vars are build-time only on Cloudflare — use runtime vars
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
