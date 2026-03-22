@@ -1,0 +1,36 @@
+{
+  "name": "mishna-yomi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "preview": "npm run pages:build && wrangler pages dev",
+    "deploy": "npm run pages:build && wrangler pages deploy"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.1",
+    "next": "15.2.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "resend": "^4.2.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.12",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.3",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5",
+    "wrangler": "^3.109.3"
+  }
+}

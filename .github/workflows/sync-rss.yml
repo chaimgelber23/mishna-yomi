@@ -1,0 +1,30 @@
+name: Daily RSS Sync
+
+on:
+  schedule:
+    # Runs every day at 9 AM UTC (after the rabbi typically posts)
+    - cron: '0 9 * * *'
+  # Also allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Sync RSS feed
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.SITE_URL }}/api/sync-rss" \
+            | jq .
+
+      - name: Send daily emails
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.SITE_URL }}/api/cron/daily-email" \
+            | jq .
