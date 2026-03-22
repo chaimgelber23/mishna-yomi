@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  'https://trakxowvjsosbzbbfoxq.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyYWt4b3d2anNvc2J6YmJmb3hxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE3NTA4NCwiZXhwIjoyMDg4NzUxMDg0fQ.onKKdDaYVitrHIOCLUACd0OOfAAbFP8IHEx-U60oKCI'
-);
+const url = process.env.MISHNA_SUPABASE_URL ?? process.env.SUPABASE_URL ?? 'https://trakxowvjsosbzbbfoxq.supabase.co';
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!key) { console.error('Set SUPABASE_SERVICE_ROLE_KEY env var'); process.exit(1); }
+
+const supabase = createClient(url, key);
 
 const CYCLE_START = new Date('2021-12-25');
 function getDayNumber(date) {
