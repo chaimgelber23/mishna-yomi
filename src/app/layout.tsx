@@ -10,11 +10,6 @@ export const metadata: Metadata = {
   title: { default: 'Mishna Yomi — Daily Mishnah Learning', template: '%s | Mishna Yomi' },
   description: "Listen to Rabbi Shloimie Friedman's Mishna Yomi podcast. Follow the daily learning program, track your progress through all 63 tractates, and receive daily email reminders.",
   keywords: ['mishna yomi', 'mishnah', 'jewish learning', 'torah', 'podcast', 'daily learning'],
-  openGraph: {
-    title: 'Mishna Yomi — Daily Mishnah Learning',
-    description: "Follow the official Mishna Yomit calendar with R' Shloimie Friedman. 4,192 Mishnayot, 2 per day.",
-    type: 'website',
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -25,34 +20,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Hebrew:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-parchment-50 text-stone-900 antialiased min-h-screen flex flex-col">
+      <body style={{ background: 'var(--bg)', color: 'var(--fg)' }} className="antialiased min-h-screen flex flex-col">
 
-        {/* ── NAV: logo left | links + CTA right ── */}
-        <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-stone-200/80"
-          style={{ boxShadow: '0 1px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ padding: '0 clamp(20px, 4vw, 48px)' }}>
-            <div className="flex items-center justify-between h-16">
+        {/* NAV — logo left | links+CTA flush right */}
+        <nav className="glass fixed top-0 w-full z-50 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="w-full px-6 lg:px-10">
+            <div className="flex items-center justify-between h-20">
 
               {/* Logo — flush left */}
-              <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-600 to-gold-500 flex items-center justify-center flex-shrink-0"
-                  style={{ boxShadow: '0 2px 8px rgba(180,83,9,0.3)' }}>
-                  <span className="text-white text-sm font-bold" style={{ fontFamily: 'serif' }}>מ</span>
+              <Link href="/" className="flex items-center gap-3 flex-shrink-0 group">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--navy)' }}>
+                  <span className="text-white text-base font-bold" style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl' }}>מ</span>
                 </div>
                 <div>
-                  <span className="text-gold-700 font-bold text-base leading-none group-hover:text-gold-600 transition-colors"
-                    style={{ fontFamily: 'serif', direction: 'rtl' }}>
-                    משנה יומי
-                  </span>
-                  <span className="block text-stone-400 text-[10px] tracking-widest uppercase leading-none mt-0.5 hidden sm:block">
+                  <span className="font-bold text-base leading-none" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--navy)' }}>
                     Mishna Yomi
+                  </span>
+                  <span className="block text-[10px] tracking-widest uppercase leading-none mt-0.5" style={{ color: 'var(--gold)', fontFamily: 'var(--font-hebrew)', direction: 'rtl' }}>
+                    משנה יומי
                   </span>
                 </div>
               </Link>
 
-              {/* Links + CTA — all flush right together */}
-              <div className="flex items-center gap-1">
-                <div className="hidden md:flex items-center gap-0.5 mr-3">
+              {/* All right-side items together */}
+              <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-1 mr-2">
                   {[
                     { href: '/learn', label: 'Learn' },
                     { href: '/browse', label: 'Browse' },
@@ -60,16 +53,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     { href: '/calendar', label: 'Calendar' },
                   ].map(({ href, label }) => (
                     <Link key={href} href={href}
-                      className="px-3.5 py-2 text-sm text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-all font-medium">
+                      className="px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+                      style={{ color: 'var(--muted)' }}
+                      onMouseOver={e => (e.currentTarget.style.color = 'var(--fg)')}
+                      onMouseOut={e => (e.currentTarget.style.color = 'var(--muted)')}>
                       {label}
                     </Link>
                   ))}
                 </div>
                 <Link href="/auth/login"
-                  className="text-sm text-stone-500 hover:text-stone-700 transition-colors px-3 py-2 hidden sm:block">
+                  className="hidden sm:block text-sm font-medium px-3 py-2 transition-colors"
+                  style={{ color: 'var(--muted)' }}>
                   Sign In
                 </Link>
-                <Link href="/learn" className="btn-gold text-sm px-4 py-2 rounded-lg ml-1">
+                <Link href="/learn" className="btn-primary">
                   Start Learning
                 </Link>
               </div>
@@ -77,27 +74,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
 
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pt-20">{children}</main>
 
-        {/* Footer */}
-        <footer className="border-t border-stone-200 bg-white py-10 px-6 mt-16">
+        <footer className="border-t py-10 px-6 lg:px-10" style={{ background: '#fff', borderColor: 'var(--border)' }}>
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-gold-600 to-gold-500 flex items-center justify-center">
-                <span className="text-white text-xs font-bold" style={{ fontFamily: 'serif' }}>מ</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'var(--navy)' }}>
+                <span className="text-white text-sm font-bold" style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl' }}>מ</span>
               </div>
               <div>
-                <span className="text-gold-700 text-sm font-semibold block" style={{ fontFamily: 'serif', direction: 'rtl' }}>משנה יומי</span>
-                <span className="text-stone-400 text-xs">R&apos; Shloimie Friedman&apos;s daily podcast</span>
+                <span className="font-bold text-sm" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--navy)' }}>Mishna Yomi</span>
+                <span className="block text-xs" style={{ color: 'var(--muted)' }}>R&apos; Shloimie Friedman&apos;s daily podcast</span>
               </div>
             </div>
-            <div className="flex items-center gap-6 text-stone-400 text-sm">
-              <Link href="/learn" className="hover:text-stone-600 transition-colors">Learn</Link>
-              <Link href="/browse" className="hover:text-stone-600 transition-colors">Browse</Link>
-              <Link href="/progress" className="hover:text-stone-600 transition-colors">Progress</Link>
-              <Link href="/calendar" className="hover:text-stone-600 transition-colors">Calendar</Link>
+            <div className="flex items-center gap-6 text-sm" style={{ color: 'var(--muted)' }}>
+              {['/learn', '/browse', '/progress', '/calendar'].map(href => (
+                <Link key={href} href={href} className="capitalize transition-colors hover:text-[var(--fg)]">
+                  {href.slice(1)}
+                </Link>
+              ))}
             </div>
-            <p className="text-stone-400 text-xs">4,192 Mishnayot · 63 Tractates · 6 Sedarim</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>4,192 Mishnayot · 63 Tractates · 6 Sedarim</p>
           </div>
         </footer>
       </body>

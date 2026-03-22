@@ -14,146 +14,163 @@ export default function HomePage() {
   return (
     <div>
 
-      {/* ── HERO ────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #FDFAF4 0%, #FEF3C7 60%, #FDE68A 100%)' }}>
-        {/* Decorative gold arc */}
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #f59e0b 0%, transparent 70%)' }} />
-        <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #d97706 0%, transparent 70%)' }} />
+      {/* ── HERO ── */}
+      <section className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #FAFAF8 0%, #F5F0E8 50%, #EDE4D0 100%)', minHeight: '88vh', display: 'flex', alignItems: 'center' }}>
+        {/* Subtle radial accent */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(201,169,110,0.12) 0%, transparent 70%)', transform: 'translate(20%, -20%)' }} />
 
-        {/* Large watermark letter */}
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 select-none pointer-events-none hidden lg:block"
-          style={{ fontFamily: 'serif', fontSize: '320px', color: 'rgba(180,83,9,0.06)', lineHeight: 1, direction: 'rtl', fontWeight: 700 }}>
+        {/* Hebrew watermark */}
+        <div className="absolute right-0 bottom-0 pointer-events-none select-none hidden xl:block"
+          style={{ fontFamily: 'var(--font-hebrew)', fontSize: '520px', color: 'rgba(30,58,95,0.04)', lineHeight: 1, direction: 'rtl', fontWeight: 700, transform: 'translateY(10%)' }}>
           מ
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
-          <div className="max-w-2xl">
+        <div className="relative w-full px-6 lg:px-10" style={{ maxWidth: '1152px', margin: '0 auto' }}>
+          <div className="max-w-2xl py-20 sm:py-28">
+
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-white/70 border border-gold-300 rounded-full px-4 py-1.5 mb-8 text-xs text-gold-700 font-medium tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
+            <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-8 text-xs font-semibold tracking-wide border"
+              style={{ background: 'rgba(201,169,110,0.1)', borderColor: 'rgba(201,169,110,0.3)', color: 'var(--gold-dark)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--gold)' }} />
               Official Mishna Yomit Program
             </div>
 
-            {/* Hebrew headline */}
-            <h1 className="font-bold mb-4 leading-none"
-              style={{ fontFamily: 'serif', direction: 'rtl', fontSize: 'clamp(56px, 10vw, 96px)', color: '#92400e' }}>
+            {/* Hebrew */}
+            <div className="mb-3 font-bold leading-none"
+              style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', fontSize: 'clamp(52px, 9vw, 88px)', color: 'var(--navy)' }}>
               משנה יומי
-            </h1>
-
-            <div className="ornament-divider max-w-xs mb-6">
-              <span className="text-gold-500 text-xs tracking-widest">✦ ✦ ✦</span>
             </div>
 
-            <p className="text-2xl sm:text-3xl font-serif text-stone-800 mb-4 leading-snug">
-              Daily Mishnah with{' '}
-              <span className="gradient-text-gold">R&apos; Shloimie Friedman</span>
+            <div className="divider-gold mb-5" style={{ maxWidth: '200px' }}>
+              <span style={{ fontSize: '10px', letterSpacing: '0.2em' }}>✦ ✦ ✦</span>
+            </div>
+
+            <h1 className="mb-5 leading-tight" style={{ fontFamily: 'var(--font-playfair)', fontSize: 'clamp(26px, 4vw, 40px)', color: 'var(--fg)' }}>
+              Daily Mishnah Learning with{' '}
+              <span className="gradient-gold">R&apos; Shloimie Friedman</span>
+            </h1>
+
+            <p className="mb-10 leading-relaxed" style={{ color: 'var(--muted)', fontSize: '1.0625rem', maxWidth: '520px' }}>
+              Two Mishnayot every day. Follow the official Mishna Yomit calendar,
+              listen to the podcast, track your progress, and complete the entire Mishnah.
             </p>
 
-            <p className="text-stone-500 text-lg mb-10 leading-relaxed max-w-lg">
-              Two Mishnayot every day. Follow the official calendar, listen to the podcast, and complete the entire Mishnah.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/learn" className="btn-gold px-8 py-3.5 rounded-xl text-base text-center">
+            <div className="flex flex-wrap gap-3 mb-10">
+              <Link href="/learn" className="btn-primary" style={{ fontSize: '0.9375rem', padding: '0.75rem 1.75rem' }}>
                 Start Learning Today
               </Link>
-              <Link href="/browse" className="btn-ghost px-8 py-3.5 rounded-xl text-base text-center">
+              <Link href="/browse" className="btn-ghost" style={{ fontSize: '0.9375rem', padding: '0.75rem 1.75rem' }}>
                 Browse Tractates
               </Link>
             </div>
 
-            <div className="flex items-center gap-5 mt-8 text-sm text-stone-400">
+            <div className="flex items-center gap-5 text-sm" style={{ color: 'var(--muted)' }}>
               <span>{TOTAL_MISHNAYOT.toLocaleString()} Mishnayot</span>
-              <span className="w-1 h-1 rounded-full bg-stone-300" />
+              <span style={{ color: 'var(--border)', fontWeight: 300 }}>|</span>
               <span>{totalTractates} Tractates</span>
-              <span className="w-1 h-1 rounded-full bg-stone-300" />
+              <span style={{ color: 'var(--border)', fontWeight: 300 }}>|</span>
               <span>{totalSedarim} Sedarim</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── TODAY'S LESSON ──────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6 relative z-10 mb-20">
-        <div className="card-gold p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-            <div>
-              <p className="text-xs text-gold-600 uppercase tracking-widest font-semibold mb-2">Today&apos;s Lesson · Day {today.dayNumber}</p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 mb-1">{today.label}</h2>
-              <p className="text-stone-400 text-sm">{today.dateLabel}</p>
-            </div>
-            <Link href="/learn"
-              className="btn-gold px-7 py-3.5 rounded-xl flex-shrink-0 text-sm flex items-center gap-2">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              Listen Now
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURES ────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 mb-24">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-serif text-stone-900 mb-3">Everything you need to complete the Mishnah</h2>
-          <p className="text-stone-400 max-w-lg mx-auto">A thoughtfully designed learning platform built around the Mishna Yomit program.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>,
-              title: 'Listen', desc: 'Audio player with position memory, speed control, and skip buttons.', href: '/learn',
-            },
-            {
-              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
-              title: 'Track Progress', desc: 'Visual breakdown by Seder and Tractate across all 63 tractates.', href: '/progress',
-            },
-            {
-              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
-              title: 'Follow Calendar', desc: 'Stay on the official Mishna Yomit schedule. Always know today\'s 2 Mishnayot.', href: '/calendar',
-            },
-            {
-              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-              title: 'Daily Email', desc: 'A daily reminder with today\'s lesson and a direct listen link.', href: '#subscribe',
-            },
-          ].map(f => (
-            <Link key={f.title} href={f.href}
-              className="group card p-6 hover:border-gold-300 hover:shadow-md transition-all cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-gold-50 border border-gold-200 flex items-center justify-center text-gold-600 mb-4 group-hover:bg-gold-100 transition-colors">
-                {f.icon}
+      {/* ── TODAY'S LESSON ── */}
+      <section style={{ background: 'var(--bg)' }} className="py-16">
+        <div className="px-6 lg:px-10" style={{ maxWidth: '1152px', margin: '0 auto' }}>
+          <div className="card-gold p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--gold)' }}>
+                  Today&apos;s Lesson · Day {today.dayNumber}
+                </p>
+                <h2 className="text-3xl sm:text-4xl font-bold mb-1" style={{ color: 'var(--fg)', fontFamily: 'var(--font-playfair)' }}>
+                  {today.label}
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>{today.dateLabel}</p>
               </div>
-              <h3 className="font-semibold text-stone-900 mb-1.5 group-hover:text-gold-700 transition-colors">{f.title}</h3>
-              <p className="text-sm text-stone-400 leading-relaxed">{f.desc}</p>
-            </Link>
-          ))}
+              <Link href="/learn" className="btn-primary flex-shrink-0" style={{ fontSize: '0.9375rem', padding: '0.75rem 1.75rem' }}>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                Listen Now
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ── SIX SEDARIM ─────────────────────────────────────── */}
-      <section className="border-y border-stone-200 bg-stone-50 py-20 mb-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      {/* ── FEATURES ── */}
+      <section className="py-16" style={{ background: '#fff' }}>
+        <div className="px-6 lg:px-10" style={{ maxWidth: '1152px', margin: '0 auto' }}>
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-serif text-stone-900 mb-2">Six Sedarim. 63 Tractates. One journey.</h2>
-            <p className="text-stone-400 text-sm">From Zeraim to Taharot — every mishna in order.</p>
+            <h2 className="text-3xl font-bold mb-3" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>
+              Everything you need to complete the Mishnah
+            </h2>
+            <p style={{ color: 'var(--muted)' }}>Built around the official Mishna Yomit calendar.</p>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>,
+                title: 'Listen', desc: 'Audio player with position memory, speed control, and skip buttons. Picks up right where you left off.', href: '/learn',
+              },
+              {
+                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+                title: 'Track Progress', desc: 'Visual breakdown by Seder and Tractate. See exactly how far you\'ve come across all 63 tractates.', href: '/progress',
+              },
+              {
+                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+                title: 'Follow Calendar', desc: 'Stay on the official Mishna Yomit schedule. Always know what today\'s 2 Mishnayot are.', href: '/calendar',
+              },
+              {
+                icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+                title: 'Daily Email', desc: 'A daily reminder with today\'s lesson and a direct listen link — delivered at your preferred time.', href: '#subscribe',
+              },
+            ].map(f => (
+              <Link key={f.title} href={f.href}
+                className="card group p-6 hover:shadow-md transition-all cursor-pointer"
+                style={{ borderColor: 'var(--border)' }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-colors"
+                  style={{ background: 'rgba(30,58,95,0.06)', color: 'var(--navy)' }}>
+                  {f.icon}
+                </div>
+                <h3 className="font-semibold mb-1.5 transition-colors" style={{ color: 'var(--fg)' }}>{f.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>{f.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SIX SEDARIM ── */}
+      <section className="py-16" style={{ background: 'var(--bg)' }}>
+        <div className="px-6 lg:px-10" style={{ maxWidth: '1152px', margin: '0 auto' }}>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>
+              Six Sedarim. 63 Tractates. One journey.
+            </h2>
+            <p style={{ color: 'var(--muted)' }}>From Zeraim to Taharot — every mishna in order.</p>
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {SEDARIM.map((seder, i) => {
-              const colors = [
-                { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', sub: 'text-amber-500' },
-                { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', sub: 'text-blue-500' },
-                { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', sub: 'text-purple-500' },
-                { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', sub: 'text-emerald-500' },
-                { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', sub: 'text-rose-500' },
-                { bg: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', sub: 'text-cyan-500' },
+              const palettes = [
+                { bg: '#FFFBEB', border: '#FDE68A', text: '#92400E' },
+                { bg: '#EFF6FF', border: '#BFDBFE', text: '#1E40AF' },
+                { bg: '#F5F3FF', border: '#DDD6FE', text: '#5B21B6' },
+                { bg: '#ECFDF5', border: '#A7F3D0', text: '#065F46' },
+                { bg: '#FFF1F2', border: '#FECDD3', text: '#9F1239' },
+                { bg: '#ECFEFF', border: '#A5F3FC', text: '#155E75' },
               ];
-              const c = colors[i];
+              const p = palettes[i];
               return (
-                <div key={seder.name} className={`${c.bg} border ${c.border} rounded-xl p-4 text-center hover:shadow-sm transition-all`}>
-                  <span className={`font-bold ${c.text} block mb-1`}>{seder.name}</span>
-                  <span className="text-xs text-stone-400 block mb-2">{seder.tractates.length} tractates</span>
-                  <span className={`text-sm font-bold font-mono ${c.sub}`}>{seder.totalMishnayot.toLocaleString()}</span>
-                  <span className="text-xs text-stone-400 block">mishnayot</span>
+                <div key={seder.name} className="rounded-2xl p-4 text-center border transition-all hover:shadow-sm"
+                  style={{ background: p.bg, borderColor: p.border }}>
+                  <span className="font-bold block mb-1 text-sm" style={{ color: p.text }}>{seder.name}</span>
+                  <span className="text-xs block mb-2" style={{ color: 'var(--muted)' }}>{seder.tractates.length} tractates</span>
+                  <span className="text-sm font-bold font-mono block" style={{ color: p.text }}>{seder.totalMishnayot.toLocaleString()}</span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>mishnayot</span>
                 </div>
               );
             })}
@@ -161,25 +178,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SUBSCRIBE ───────────────────────────────────────── */}
-      <section id="subscribe" className="max-w-2xl mx-auto px-4 sm:px-6 mb-24">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-serif text-stone-900 mb-3">Get your daily reminder</h2>
-          <p className="text-stone-400 text-sm max-w-md mx-auto">
-            Enter your email and choose a time — we&apos;ll send today&apos;s 2 Mishnayot with a direct listen link.
+      {/* ── SUBSCRIBE ── */}
+      <section id="subscribe" className="py-16" style={{ background: '#fff' }}>
+        <div className="px-6 lg:px-10 text-center" style={{ maxWidth: '640px', margin: '0 auto' }}>
+          <h2 className="text-3xl font-bold mb-3" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>
+            Get your daily reminder
+          </h2>
+          <p className="mb-10" style={{ color: 'var(--muted)' }}>
+            Enter your email — we&apos;ll send today&apos;s 2 Mishnayot with a direct listen link.
           </p>
+          <SubscribeForm />
         </div>
-        <SubscribeForm />
       </section>
 
-      {/* ── QUOTE ───────────────────────────────────────────── */}
-      <section className="py-16 text-center border-t border-stone-200 bg-amber-50/50">
-        <div className="max-w-xl mx-auto px-4">
-          <p className="text-2xl sm:text-3xl text-gold-700 mb-4 leading-relaxed"
-            style={{ fontFamily: 'serif', direction: 'rtl' }}>
+      {/* ── QUOTE ── */}
+      <section className="py-16 text-center border-t" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+        <div className="px-6" style={{ maxWidth: '560px', margin: '0 auto' }}>
+          <p className="text-2xl sm:text-3xl mb-4 leading-relaxed"
+            style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', color: 'var(--navy)' }}>
             &ldquo;כָּל יִשְׂרָאֵל יֵשׁ לָהֶם חֵלֶק לָעוֹלָם הַבָּא&rdquo;
           </p>
-          <p className="text-stone-400 text-sm">All of Israel has a share in the World to Come — Sanhedrin 10:1</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>All of Israel has a share in the World to Come — Sanhedrin 10:1</p>
         </div>
       </section>
 
