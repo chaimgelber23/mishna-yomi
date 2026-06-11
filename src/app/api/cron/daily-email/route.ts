@@ -3,6 +3,13 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 import { getTodaySummary } from '@/lib/calendar';
 import { buildDailyReminderEmail } from '@/lib/email/templates';
+import {
+  CustomCycle,
+  cycleDayNumber,
+  mishnaRangeLabel,
+  mishnayotForCycleDay,
+  todayString,
+} from '@/lib/cycle';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -139,14 +146,43 @@ export async function POST(request: NextRequest) {
 
       const unsubscribeUrl = `${siteUrl}/settings`;
 
+      // If the user has an active personal cycle, send THEIR day's learning
+      // instead of the communal portion.
+      let userMishnayot = mishnayot;
+      let userTitle = episode?.title || label;
+      let userListenUrl = listenUrl;
+      let userDescription = episode?.description || undefined;
+
+      const { data: cycles } = await supabase
+        .from('mishna_cycles')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const cycle = cycles?.[0] as CustomCycle | undefined;
+      if (cycle) {
+        const dayNum = cycleDayNumber(cycle, todayString());
+        if (dayNum >= 1) {
+          const refs = mishnayotForCycleDay(cycle, dayNum);
+          if (refs.length) {
+            userMishnayot = refs;
+            userTitle = `${cycle.name} — Day ${dayNum}: ${mishnaRangeLabel(refs)}`;
+            userListenUrl = `${siteUrl}/cycles`;
+            userDescription = undefined;
+          }
+        }
+      }
+
       const { subject, html, text } = buildDailyReminderEmail({
         recipientName: user.display_name,
-        mishnayot,
-        episodeTitle: episode?.title || label,
-        listenUrl,
+        mishnayot: userMishnayot,
+        episodeTitle: userTitle,
+        listenUrl: userListenUrl,
         completedCount: count || 0,
         unsubscribeUrl,
-        episodeDescription: episode?.description || undefined,
+        episodeDescription: userDescription,
       });
 
       await resend.emails.send({

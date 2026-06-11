@@ -20,13 +20,13 @@ export default function EpisodeCard({ episode, isActive = false, isCompleted = f
   return (
     <div onClick={onClick} className="group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all border"
       style={{
-        background: isActive ? 'rgba(30,58,95,0.06)' : isCompleted ? 'rgba(6,95,70,0.04)' : 'transparent',
-        borderColor: isActive ? 'rgba(30,58,95,0.2)' : isCompleted ? 'rgba(167,243,208,0.6)' : isToday ? 'rgba(201,169,110,0.3)' : 'transparent',
+        background: isActive ? 'rgba(34,26,16,0.06)' : isCompleted ? 'rgba(6,95,70,0.04)' : 'transparent',
+        borderColor: isActive ? 'rgba(34,26,16,0.2)' : isCompleted ? 'rgba(167,243,208,0.6)' : isToday ? 'rgba(201,169,110,0.3)' : 'transparent',
       }}>
       <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center border transition-all"
         style={{
-          background: isActive ? 'rgba(30,58,95,0.1)' : isCompleted ? '#ECFDF5' : 'var(--bg)',
-          borderColor: isActive ? 'rgba(30,58,95,0.25)' : isCompleted ? '#A7F3D0' : 'var(--border)',
+          background: isActive ? 'rgba(34,26,16,0.1)' : isCompleted ? '#ECFDF5' : 'var(--bg)',
+          borderColor: isActive ? 'rgba(34,26,16,0.25)' : isCompleted ? '#A7F3D0' : 'var(--border)',
         }}>
         {isActive
           ? <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--navy)' }}><path d="M8 5v14l11-7z"/></svg>

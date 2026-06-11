@@ -169,8 +169,11 @@ export default function LearnPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">📖</div>
-          <p className="text-slate-500">Loading lessons...</p>
+          <svg className="w-8 h-8 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--gold)' }}>
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p style={{ color: 'var(--muted)' }}>Loading lessons...</p>
         </div>
       </div>
     );
@@ -181,20 +184,25 @@ export default function LearnPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-lg">
-          <div className="text-8xl mb-6">🎉</div>
-          <h1 className="text-4xl font-serif text-gold-400 mb-4 text-glow-gold">
+          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ background: 'rgba(201,169,110,0.12)', border: '3px solid rgba(201,169,110,0.4)' }}>
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--gold)' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+          </div>
+          <h1 className="text-4xl mb-4" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--gold-dark)' }}>
             Mazal Tov!
           </h1>
           <p
-            className="text-3xl text-gold-300 mb-4"
-            style={{ fontFamily: 'serif', direction: 'rtl' }}
+            className="text-3xl mb-4"
+            style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', color: 'var(--gold-dark)' }}
           >
             סיים את כל הש&quot;ס
           </p>
-          <p className="text-lg text-slate-300 mb-3">
+          <p className="text-lg mb-3" style={{ color: 'var(--fg)' }}>
             You have completed the entire Mishnah!
           </p>
-          <p className="text-slate-500 mb-8">
+          <p className="mb-8" style={{ color: 'var(--muted)' }}>
             All {totalEpisodes.toLocaleString()} lessons · {completedCount.toLocaleString()} Mishnayot complete
           </p>
           <button
@@ -214,10 +222,10 @@ export default function LearnPage() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-serif text-parchment-50 mb-1">Learn</h1>
-            <p className="text-slate-500 text-sm">
-              Today: <span className="text-gold-400">{today.label}</span>
-              <span className="text-slate-600 mx-2">·</span>
+            <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>Learn</h1>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+              Today: <span style={{ color: 'var(--gold-dark)' }}>{today.label}</span>
+              <span className="mx-2">·</span>
               Day {today.dayNumber}
             </p>
           </div>
@@ -226,12 +234,12 @@ export default function LearnPage() {
           {user && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm text-parchment-100 font-medium">{completedCount} / {totalEpisodes} complete</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-medium" style={{ color: 'var(--fg)' }}>{completedCount} / {totalEpisodes} complete</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
                   {totalEpisodes > 0 ? ((completedCount / totalEpisodes) * 100).toFixed(1) : '0.0'}%
                 </p>
               </div>
-              <div className="w-24 h-2 bg-navy-700 rounded-full overflow-hidden">
+              <div className="w-24 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
                 <div
                   className="h-2 bg-gradient-to-r from-gold-700 to-gold-400 rounded-full transition-all"
                   style={{ width: `${totalEpisodes > 0 ? (completedCount / totalEpisodes) * 100 : 0}%` }}
@@ -248,7 +256,7 @@ export default function LearnPage() {
             onClick={resume}
             className="btn-gold px-5 py-2.5 rounded-lg text-sm"
           >
-            ↩ Pick Up Where I Left Off
+            Pick Up Where I Left Off
           </button>
           <button
             onClick={() => {
@@ -257,7 +265,7 @@ export default function LearnPage() {
             }}
             className="btn-ghost px-5 py-2.5 rounded-lg text-sm"
           >
-            📅 Jump to Today
+            Jump to Today
           </button>
           {!user && (
             <Link
@@ -299,18 +307,18 @@ export default function LearnPage() {
 
               {/* No auth notice */}
               {!user && (
-                <div className="bg-navy-800/60 border border-navy-600 rounded-xl p-4 text-sm text-slate-400">
-                  <Link href="/auth/login" className="text-gold-400 hover:underline">Sign in</Link> to save your progress and sync across devices.
+                <div className="rounded-xl p-4 text-sm border" style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--muted)' }}>
+                  <Link href="/auth/login" className="hover:underline font-medium" style={{ color: 'var(--gold-dark)' }}>Sign in</Link> to save your progress and sync across devices.
                 </div>
               )}
 
               {/* Episode info */}
               <div className="card p-5">
-                <h3 className="text-sm font-semibold text-parchment-100 mb-2">About this lesson</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--fg)' }}>About this lesson</h3>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
                   {currentEp.tractate && (
                     <>
-                      <span className="text-gold-400 font-medium">Tractate {currentEp.tractate}</span>
+                      <span className="font-medium" style={{ color: 'var(--gold-dark)' }}>Tractate {currentEp.tractate}</span>
                       {currentEp.chapter_from && ` · Chapter ${currentEp.chapter_from}`}
                       {currentEp.mishna_from && `, Mishna ${currentEp.mishna_from}`}
                       {currentEp.mishna_to && currentEp.mishna_to !== currentEp.mishna_from && ` – ${currentEp.mishna_to}`}
@@ -318,10 +326,10 @@ export default function LearnPage() {
                   )}
                 </p>
                 {currentEp.mishna_day_number && (
-                  <p className="text-xs text-slate-600 mt-1">
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
                     Mishna Yomit Day {currentEp.mishna_day_number}
                     {currentEp.mishna_day_number === today.dayNumber && (
-                      <span className="text-gold-500 ml-2">· Today&apos;s lesson</span>
+                      <span className="ml-2" style={{ color: 'var(--gold-dark)' }}>· Today&apos;s lesson</span>
                     )}
                   </p>
                 )}
@@ -329,9 +337,9 @@ export default function LearnPage() {
             </>
           ) : (
             <div className="card p-12 text-center">
-              <p className="text-slate-400 mb-4">No episodes loaded yet.</p>
-              <p className="text-slate-600 text-sm">
-                Run <code className="bg-navy-700 px-2 py-0.5 rounded text-xs">/api/sync-rss</code> to sync episodes from the podcast feed.
+              <p className="mb-4" style={{ color: 'var(--muted)' }}>No episodes loaded yet.</p>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Run <code className="px-2 py-0.5 rounded text-xs" style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--fg)' }}>/api/sync-rss</code> to sync episodes from the podcast feed.
               </p>
             </div>
           )}
@@ -340,10 +348,10 @@ export default function LearnPage() {
         {/* Episode list — right 2/5 */}
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
               All Episodes {episodes.length > 0 && `(${episodes.length})`}
             </h3>
-            <Link href="/progress" className="text-xs text-gold-500 hover:text-gold-400">
+            <Link href="/progress" className="text-xs hover:underline" style={{ color: 'var(--gold-dark)' }}>
               View Progress →
             </Link>
           </div>
@@ -354,7 +362,8 @@ export default function LearnPage() {
             placeholder="Search tractate or episode..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-parchment-100 placeholder-slate-600 focus:outline-none focus:border-gold-500 transition-colors"
+            className="w-full rounded-lg px-3 py-2 text-sm border outline-none transition-colors"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--fg)' }}
           />
 
           {/* Episode list */}
@@ -387,14 +396,17 @@ export default function LearnPage() {
             {!showAllEpisodes && filteredEpisodes.length > 20 && (
               <button
                 onClick={() => setShowAllEpisodes(true)}
-                className="w-full py-3 text-sm text-slate-500 hover:text-slate-300 border border-navy-700 hover:border-navy-500 rounded-xl transition-colors"
+                className="w-full py-3 text-sm border rounded-xl transition-colors cursor-pointer"
+                style={{ color: 'var(--muted)', borderColor: 'var(--border)' }}
+                onMouseOver={e => { e.currentTarget.style.color = 'var(--navy)'; e.currentTarget.style.borderColor = 'var(--gold)'; }}
+                onMouseOut={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
               >
                 Show all {filteredEpisodes.length} episodes
               </button>
             )}
 
             {episodes.length === 0 && (
-              <p className="text-slate-500 text-sm text-center py-8">
+              <p className="text-sm text-center py-8" style={{ color: 'var(--muted)' }}>
                 No episodes yet. Sync from RSS to get started.
               </p>
             )}

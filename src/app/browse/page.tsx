@@ -19,13 +19,14 @@ interface EpisodeStub {
   chapter_from: number; mishna_from: number; chapter_to: number; mishna_to: number;
 }
 
+/* Six sedarim — muted earth tones, matching the homepage seder strip */
 const SEDER_PALETTES = [
-  { bg: 'rgba(201,169,110,0.07)', border: 'rgba(201,169,110,0.22)', accent: '#7A5C1E', hex: '#C9A96E', light: 'rgba(201,169,110,0.12)' },
-  { bg: 'rgba(30,58,95,0.05)',    border: 'rgba(30,58,95,0.16)',    accent: '#1e3a5f', hex: '#2d5a8e', light: 'rgba(30,58,95,0.1)' },
-  { bg: 'rgba(109,40,217,0.05)',  border: 'rgba(109,40,217,0.14)', accent: '#5B21B6', hex: '#7C3AED', light: 'rgba(109,40,217,0.1)' },
-  { bg: 'rgba(6,95,70,0.05)',     border: 'rgba(6,95,70,0.14)',    accent: '#065F46', hex: '#059669', light: 'rgba(6,95,70,0.1)' },
-  { bg: 'rgba(159,18,57,0.05)',   border: 'rgba(159,18,57,0.14)',  accent: '#9F1239', hex: '#E11D48', light: 'rgba(159,18,57,0.1)' },
-  { bg: 'rgba(21,94,117,0.05)',   border: 'rgba(21,94,117,0.14)',  accent: '#155E75', hex: '#0891B2', light: 'rgba(21,94,117,0.1)' },
+  { bg: 'rgba(160,120,64,0.09)', border: 'rgba(160,120,64,0.26)', accent: '#856230', hex: '#A07840', light: 'rgba(160,120,64,0.12)' }, // brass
+  { bg: 'rgba(74,58,36,0.07)',   border: 'rgba(74,58,36,0.20)',   accent: '#4A3A24', hex: '#3D2E1A', light: 'rgba(74,58,36,0.1)' },   // espresso
+  { bg: 'rgba(107,76,42,0.07)',  border: 'rgba(107,76,42,0.18)',  accent: '#6B4C2A', hex: '#8A5A2B', light: 'rgba(107,76,42,0.1)' },  // umber
+  { bg: 'rgba(74,86,52,0.07)',   border: 'rgba(74,86,52,0.18)',   accent: '#4A5634', hex: '#5E6B3A', light: 'rgba(74,86,52,0.1)' },   // olive
+  { bg: 'rgba(122,52,46,0.07)',  border: 'rgba(122,52,46,0.18)',  accent: '#7A342E', hex: '#94413A', light: 'rgba(122,52,46,0.1)' },  // terracotta
+  { bg: 'rgba(61,73,84,0.07)',   border: 'rgba(61,73,84,0.18)',   accent: '#3D4954', hex: '#516170', light: 'rgba(61,73,84,0.1)' },   // slate
 ];
 
 const SEDER_ORDER = ['Zeraim','Moed','Nashim','Nezikin','Kodashim','Taharot'];
@@ -299,7 +300,7 @@ export default function BrowsePage() {
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
 
       {/* Page header */}
-      <div className="border-b" style={{ background: '#fff', borderColor: 'var(--border)' }}>
+      <div className="border-b" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
         <div className="px-6 lg:px-10 py-8" style={{ maxWidth: '1152px', margin: '0 auto' }}>
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 mb-5 text-sm" style={{ color: 'var(--muted)' }}>
@@ -364,7 +365,7 @@ export default function BrowsePage() {
               else if (level === 'mishna')    { setSelectedChapter(null);  setLevel('chapter'); }
             }}
             className="mb-6 flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-all cursor-pointer hover:shadow-sm"
-            style={{ color: 'var(--muted)', borderColor: 'var(--border)', background: '#fff' }}>
+            style={{ color: 'var(--muted)', borderColor: 'var(--border)', background: 'var(--surface)' }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
             </svg>

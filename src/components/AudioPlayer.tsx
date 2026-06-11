@@ -80,7 +80,7 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
     : '';
 
   return (
-    <div className="card overflow-hidden" style={{ borderColor: 'var(--border)', boxShadow: playing ? '0 4px 24px rgba(30,58,95,0.12)' : '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.3s' }}>
+    <div className="card overflow-hidden" style={{ borderColor: 'var(--border)', boxShadow: playing ? '0 4px 24px rgba(34,26,16,0.12)' : '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.3s' }}>
       {/* Header */}
       <div className="px-6 pt-5 pb-4 border-b" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, #F8F4EE, #fff)' }}>
         <div className="flex items-start justify-between gap-4">
@@ -145,7 +145,7 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
 
             <button onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}
               className="w-14 h-14 rounded-full flex items-center justify-center text-white transition-all cursor-pointer"
-              style={{ background: playing ? 'var(--navy)' : 'linear-gradient(135deg, var(--navy), #2d5a8e)', boxShadow: playing ? '0 4px 20px rgba(30,58,95,0.35)' : '0 2px 12px rgba(30,58,95,0.2)' }}>
+              style={{ background: playing ? 'var(--navy)' : 'linear-gradient(135deg, var(--navy), #3D2E1A)', boxShadow: playing ? '0 4px 20px rgba(34,26,16,0.35)' : '0 2px 12px rgba(34,26,16,0.2)' }}>
               {playing
                 ? <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                 : <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>}

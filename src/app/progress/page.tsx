@@ -134,8 +134,11 @@ export default function ProgressPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4 animate-pulse">📊</div>
-          <p className="text-slate-500">Loading your progress...</p>
+          <svg className="w-8 h-8 animate-spin mx-auto mb-4" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--gold)' }}>
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p style={{ color: 'var(--muted)' }}>Loading your progress...</p>
         </div>
       </div>
     );
@@ -145,11 +148,11 @@ export default function ProgressPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-serif text-parchment-50 mb-1">Your Progress</h1>
+        <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>Your Progress</h1>
         {!user && (
-          <p className="text-slate-500 text-sm">
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
             Showing a sample progress sheet.{' '}
-            <Link href="/auth/login" className="text-gold-400 hover:underline">Sign in</Link> to track your real progress.
+            <Link href="/auth/login" className="hover:underline font-medium" style={{ color: 'var(--gold-dark)' }}>Sign in</Link> to track your real progress.
           </p>
         )}
       </div>
@@ -158,30 +161,30 @@ export default function ProgressPage() {
       <div className="card-gold p-6 sm:p-8 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-6">
           <div>
-            <p className="text-xs text-gold-500 uppercase tracking-widest mb-2">Overall Progress</p>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--gold-dark)' }}>Overall Progress</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold gradient-text-gold">{overallPct.toFixed(1)}%</span>
-              <span className="text-slate-400 text-sm">complete</span>
+              <span className="text-5xl font-bold gradient-gold">{overallPct.toFixed(1)}%</span>
+              <span className="text-sm" style={{ color: 'var(--muted)' }}>complete</span>
             </div>
-            <p className="text-slate-400 text-sm mt-1">
-              <span className="text-gold-300 font-semibold">{completedCount.toLocaleString()}</span> of{' '}
-              <span className="text-parchment-100">{TOTAL_MISHNAYOT.toLocaleString()}</span> Mishnayot
+            <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+              <span className="font-semibold" style={{ color: 'var(--gold-dark)' }}>{completedCount.toLocaleString()}</span> of{' '}
+              <span style={{ color: 'var(--fg)' }}>{TOTAL_MISHNAYOT.toLocaleString()}</span> Mishnayot
             </p>
           </div>
 
           <div className="space-y-1 text-right">
             {currentTractate && (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
                 Currently in:{' '}
-                <span className="text-gold-400 font-medium">{currentTractate}</span>
+                <span className="font-medium" style={{ color: 'var(--gold-dark)' }}>{currentTractate}</span>
               </p>
             )}
             {projectedDate && (
-              <p className="text-sm text-slate-500">
-                Projected finish: <span className="text-parchment-100">{formatDate(projectedDate)}</span>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                Projected finish: <span style={{ color: 'var(--fg)' }}>{formatDate(projectedDate)}</span>
               </p>
             )}
-            <Link href="/learn" className="text-xs text-gold-500 hover:underline block">
+            <Link href="/learn" className="text-xs hover:underline block" style={{ color: 'var(--gold-dark)' }}>
               Continue learning →
             </Link>
           </div>
@@ -198,15 +201,15 @@ export default function ProgressPage() {
         />
 
         {/* Mini stats row */}
-        <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-navy-600">
+        <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
           {[
             { label: 'Tractates Started', value: Object.keys(tractateProgress).length },
             { label: 'Tractates Complete', value: MISHNA_STRUCTURE.filter(t => (tractateProgress[t.tractate]?.completed || 0) >= t.totalMishnayot).length },
             { label: 'Remaining', value: (TOTAL_MISHNAYOT - completedCount).toLocaleString() },
           ].map(s => (
             <div key={s.label} className="text-center">
-              <p className="text-2xl font-bold text-gold-400">{s.value}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--gold-dark)' }}>{s.value}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -226,20 +229,20 @@ export default function ProgressPage() {
               {/* Seder header */}
               <button
                 onClick={() => toggleSeder(seder.name)}
-                className="w-full flex items-center justify-between p-5 hover:bg-navy-700/30 transition-colors"
+                className="w-full flex items-center justify-between p-5 hover:bg-black/5 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-4">
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-semibold text-parchment-50">Seder {seder.name}</h2>
+                      <h2 className="text-lg font-semibold" style={{ color: 'var(--fg)' }}>Seder {seder.name}</h2>
                       <span
-                        className="text-sm text-gold-400"
-                        style={{ fontFamily: 'serif', direction: 'rtl' }}
+                        className="text-sm"
+                        style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', color: 'var(--gold-dark)' }}
                       >
                         {SEDER_HEBREW[seder.name]}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                       {seder.tractates.length} tractates · {seder.totalMishnayot.toLocaleString()} mishnayot
                     </p>
                   </div>
@@ -247,21 +250,21 @@ export default function ProgressPage() {
 
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden sm:block">
-                    <p className="text-sm font-bold text-gold-400">{sederPct.toFixed(1)}%</p>
-                    <p className="text-xs text-slate-500">{sederCompleted}/{seder.totalMishnayot}</p>
+                    <p className="text-sm font-bold" style={{ color: 'var(--gold-dark)' }}>{sederPct.toFixed(1)}%</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>{sederCompleted}/{seder.totalMishnayot}</p>
                   </div>
                   <div className="w-24 hidden sm:block">
                     <ProgressBar value={sederPct} height="sm" />
                   </div>
-                  <span className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                    ▼
+                  <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} style={{ color: 'var(--muted)' }}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </span>
                 </div>
               </button>
 
               {/* Tractate grid */}
               {isExpanded && (
-                <div className="border-t border-navy-700 p-4">
+                <div className="border-t p-4" style={{ borderColor: 'var(--border)' }}>
                   {/* Mobile progress bar */}
                   <div className="sm:hidden mb-4">
                     <ProgressBar value={sederPct} height="sm" showLabel total={seder.totalMishnayot} completed={sederCompleted} />
@@ -289,7 +292,7 @@ export default function ProgressPage() {
       </div>
 
       {/* Bottom CTA */}
-      <div className="text-center mt-12 py-8 border-t border-navy-800">
+      <div className="text-center mt-12 py-8 border-t" style={{ borderColor: 'var(--border)' }}>
         <Link href="/learn" className="btn-gold px-8 py-4 rounded-xl text-base inline-block">
           Continue Learning →
         </Link>

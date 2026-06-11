@@ -133,10 +133,10 @@ export default function CalendarPage() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-serif text-parchment-50 mb-1">Mishna Yomit Calendar</h1>
-        <p className="text-slate-500 text-sm">
+        <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>Mishna Yomit Calendar</h1>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
           The official daily learning calendar — 2 Mishnayot per day.
-          Day <span className="text-gold-400">{todayDayNum}</span> of {TOTAL_CYCLE_DAYS} in the current cycle.
+          Day <span style={{ color: 'var(--gold-dark)' }}>{todayDayNum}</span> of {TOTAL_CYCLE_DAYS} in the current cycle.
         </p>
       </div>
 
@@ -144,14 +144,14 @@ export default function CalendarPage() {
       <div className="card-gold p-5 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-gold-500 uppercase tracking-widest mb-1">Today</p>
-            <p className="text-2xl font-bold text-gold-300">{todayLabel}</p>
-            <p className="text-slate-400 text-sm">
+            <p className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--gold-dark)' }}>Today</p>
+            <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--gold-dark)' }}>{todayLabel}</p>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>
               {today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
           <Link href="/learn" className="btn-gold px-6 py-3 rounded-xl text-sm flex-shrink-0">
-            ▶ Listen Today&apos;s Lesson
+            Listen Today&apos;s Lesson
           </Link>
         </div>
       </div>
@@ -162,18 +162,22 @@ export default function CalendarPage() {
           <div className="card p-4 sm:p-6">
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-6">
-              <button onClick={prevMonth} className="text-slate-400 hover:text-parchment-100 p-2 rounded-lg hover:bg-navy-700 transition-colors">
+              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-black/5 transition-colors cursor-pointer" style={{ color: 'var(--muted)' }}
+                onMouseOver={e => (e.currentTarget.style.color = 'var(--navy)')}
+                onMouseOut={e => (e.currentTarget.style.color = 'var(--muted)')}>
                 ← Prev
               </button>
               <div className="text-center">
-                <h2 className="text-lg font-semibold text-parchment-50">
+                <h2 className="text-lg font-semibold" style={{ color: 'var(--fg)' }}>
                   {MONTHS[viewMonth]} {viewYear}
                 </h2>
-                <button onClick={goToToday} className="text-xs text-gold-500 hover:text-gold-400 mt-0.5">
+                <button onClick={goToToday} className="text-xs hover:underline mt-0.5 cursor-pointer" style={{ color: 'var(--gold-dark)' }}>
                   Jump to Today
                 </button>
               </div>
-              <button onClick={nextMonth} className="text-slate-400 hover:text-parchment-100 p-2 rounded-lg hover:bg-navy-700 transition-colors">
+              <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-black/5 transition-colors cursor-pointer" style={{ color: 'var(--muted)' }}
+                onMouseOver={e => (e.currentTarget.style.color = 'var(--navy)')}
+                onMouseOut={e => (e.currentTarget.style.color = 'var(--muted)')}>
                 Next →
               </button>
             </div>
@@ -181,7 +185,7 @@ export default function CalendarPage() {
             {/* Day headers */}
             <div className="grid grid-cols-7 mb-2">
               {DAYS_OF_WEEK.map(d => (
-                <div key={d} className="text-center text-xs text-slate-600 py-1 uppercase tracking-wider">{d}</div>
+                <div key={d} className="text-center text-xs py-1 uppercase tracking-wider" style={{ color: 'var(--muted)' }}>{d}</div>
               ))}
             </div>
 
@@ -196,22 +200,22 @@ export default function CalendarPage() {
                     key={i}
                     onClick={() => setSelectedDay(day)}
                     className={`
-                      relative p-1 rounded-lg text-left transition-all min-h-[64px] sm:min-h-[80px]
+                      relative p-1 rounded-lg text-left transition-all min-h-[64px] sm:min-h-[80px] cursor-pointer
                       ${!inMonth ? 'opacity-30' : ''}
-                      ${day.isToday ? 'bg-gold-900/40 border border-gold-600' : 'hover:bg-navy-700/50 border border-transparent'}
-                      ${isSelected && !day.isToday ? 'bg-navy-700 border-navy-500' : ''}
+                      ${day.isToday ? 'bg-[#C9A96E]/15 border border-[#C9A96E]/60' : 'hover:bg-[#A07840]/10 border border-transparent'}
+                      ${isSelected && !day.isToday ? 'bg-[#A07840]/12 border-[#A07840]/45' : ''}
                       ${day.isPast && !day.isToday && !isSelected ? 'opacity-60' : ''}
                     `}
                   >
                     <span className={`
                       text-xs font-medium block mb-1
-                      ${day.isToday ? 'text-gold-300' : inMonth ? 'text-slate-300' : 'text-slate-600'}
+                      ${day.isToday ? 'text-[#856230]' : inMonth ? 'text-[#221A10]' : 'text-[#6F6049]'}
                     `}>
                       {day.date.getUTCDate()}
                     </span>
                     <span className={`
                       text-[9px] leading-tight block
-                      ${day.isToday ? 'text-gold-400' : 'text-slate-500'}
+                      ${day.isToday ? 'text-[#A07840]' : 'text-[#6F6049]'}
                     `}>
                       {day.label.length > 20 ? day.label.substring(0, 18) + '…' : day.label}
                     </span>
@@ -227,12 +231,12 @@ export default function CalendarPage() {
           {/* Selected day details */}
           {selectedDay && (
             <div className="card-gold p-5">
-              <p className="text-xs text-gold-500 uppercase tracking-widest mb-2">Selected Date</p>
-              <p className="text-xl font-bold text-gold-300 mb-1">{selectedDay.label}</p>
-              <p className="text-sm text-slate-400 mb-3">
+              <p className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--gold-dark)' }}>Selected Date</p>
+              <p className="text-xl font-bold mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--gold-dark)' }}>{selectedDay.label}</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--muted)' }}>
                 {selectedDay.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
               </p>
-              <p className="text-xs text-slate-500 mb-4">Cycle Day {selectedDay.dayNumber}</p>
+              <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>Cycle Day {selectedDay.dayNumber}</p>
               <Link
                 href="/learn"
                 className="btn-gold w-full py-2.5 rounded-lg text-sm text-center block"
@@ -244,13 +248,14 @@ export default function CalendarPage() {
 
           {/* Date search */}
           <div className="card p-4">
-            <h3 className="text-sm font-semibold text-slate-400 mb-3">Look up any date</h3>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg)' }}>Look up any date</h3>
             <div className="flex gap-2">
               <input
                 type="date"
                 value={searchDate}
                 onChange={e => setSearchDate(e.target.value)}
-                className="flex-1 bg-navy-700 border border-navy-500 rounded-lg px-3 py-2 text-sm text-parchment-100 focus:outline-none focus:border-gold-500 transition-colors"
+                className="flex-1 rounded-lg px-3 py-2 text-sm border outline-none transition-colors"
+                style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--fg)' }}
               />
               <button
                 onClick={handleSearch}
@@ -263,20 +268,20 @@ export default function CalendarPage() {
 
           {/* Upcoming 2 weeks */}
           <div className="card p-4">
-            <h3 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">Upcoming</h3>
+            <h3 className="text-sm font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Upcoming</h3>
             <div className="space-y-1.5 max-h-80 overflow-y-auto">
               {upcomingDays.map((d, i) => (
                 <div
                   key={i}
                   className={`
                     flex items-center justify-between px-3 py-2 rounded-lg text-sm
-                    ${d.isToday ? 'bg-gold-900/30 border border-gold-700/40' : 'hover:bg-navy-700/40'}
+                    ${d.isToday ? 'bg-[#C9A96E]/15 border border-[#C9A96E]/40' : 'hover:bg-black/5'}
                   `}
                 >
-                  <span className={`text-xs ${d.isToday ? 'text-gold-400 font-bold' : 'text-slate-500'}`}>
+                  <span className={`text-xs ${d.isToday ? 'text-[#A07840] font-bold' : 'text-[#6F6049]'}`}>
                     {d.isToday ? 'Today' : formatDateShort(d.date)}
                   </span>
-                  <span className={`text-xs ${d.isToday ? 'text-gold-300 font-medium' : 'text-slate-400'}`}>
+                  <span className={`text-xs ${d.isToday ? 'text-[#A07840] font-medium' : 'text-[#221A10]'}`}>
                     {d.label}
                   </span>
                 </div>

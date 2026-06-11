@@ -1,5 +1,8 @@
 import { MishnaReference, TOTAL_MISHNAYOT } from '../mishna-data';
-import { getMishnaPairLabel } from '../calendar';
+import { mishnaRangeLabel } from '../cycle';
+
+/* Sefer email palette — parchment paper, warm ink, brass.
+   Email-safe hex only (no CSS vars); Georgia / Times for serif. */
 
 interface DailyReminderData {
   recipientName?: string;
@@ -13,12 +16,12 @@ interface DailyReminderData {
 
 export function buildDailyReminderEmail(data: DailyReminderData): { subject: string; html: string; text: string } {
   const { recipientName, mishnayot, episodeTitle, listenUrl, completedCount, unsubscribeUrl, episodeDescription } = data;
-  const label = getMishnaPairLabel(mishnayot);
+  const label = mishnaRangeLabel(mishnayot);
   const greeting = recipientName ? `Shalom, ${recipientName}!` : 'Shalom!';
   const percentage = TOTAL_MISHNAYOT > 0 ? ((completedCount / TOTAL_MISHNAYOT) * 100).toFixed(1) : '0.0';
   const remaining = TOTAL_MISHNAYOT - completedCount;
 
-  const subject = `📖 Today's Mishna Yomi — ${label}`;
+  const subject = `Today's Mishna Yomi — ${label}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -28,29 +31,29 @@ export function buildDailyReminderEmail(data: DailyReminderData): { subject: str
   <title>${subject}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: #040d1a; font-family: 'Georgia', serif; color: #e2d9c5; }
-    .wrapper { max-width: 600px; margin: 0 auto; }
-    .header { background: linear-gradient(135deg, #0c1a35, #163059); padding: 40px 32px 32px; text-align: center; border-bottom: 2px solid #d97706; }
-    .hebrew { font-size: 36px; color: #f59e0b; font-family: 'Times New Roman', serif; direction: rtl; display: block; margin-bottom: 8px; }
-    .header h1 { font-size: 22px; color: #fcd34d; letter-spacing: 0.5px; font-weight: normal; }
-    .header p { color: #94a3b8; font-size: 13px; margin-top: 6px; }
-    .today-card { background: linear-gradient(135deg, #112347, #163059); margin: 0; padding: 32px; border-bottom: 1px solid #1e4480; }
-    .today-label { font-size: 11px; color: #f59e0b; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
-    .today-mishna { font-size: 28px; color: #fcd34d; font-weight: bold; margin-bottom: 6px; }
-    .today-episode { font-size: 14px; color: #94a3b8; margin-bottom: 24px; }
-    .description { background: rgba(245, 158, 11, 0.05); border-left: 3px solid #d97706; padding: 16px 20px; margin-bottom: 24px; font-size: 14px; line-height: 1.7; color: #cbd5e1; font-style: italic; }
-    .cta-button { display: block; background: linear-gradient(135deg, #d97706, #f59e0b); color: #040d1a !important; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; letter-spacing: 0.5px; }
-    .progress-section { background: #070f1f; padding: 24px 32px; border-bottom: 1px solid #112347; }
-    .progress-label { font-size: 11px; color: #64748b; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
-    .progress-numbers { font-size: 22px; color: #e2d9c5; margin-bottom: 4px; }
-    .progress-numbers span { color: #f59e0b; }
-    .progress-sub { font-size: 13px; color: #64748b; margin-bottom: 16px; }
-    .progress-bar-bg { background: #112347; border-radius: 4px; height: 8px; overflow: hidden; }
-    .progress-bar-fill { background: linear-gradient(90deg, #d97706, #f59e0b); height: 8px; border-radius: 4px; }
-    .footer { background: #040d1a; padding: 24px 32px; text-align: center; }
-    .footer p { font-size: 12px; color: #334155; line-height: 1.6; }
-    .footer a { color: #475569; text-decoration: underline; }
-    .quote { font-size: 14px; color: #64748b; font-style: italic; margin-top: 16px; line-height: 1.6; }
+    body { background-color: #F4EAD6; font-family: 'Georgia', serif; color: #221A10; }
+    .wrapper { max-width: 600px; margin: 0 auto; background: #FBF6EC; }
+    .header { background: #FBF6EC; padding: 40px 32px 28px; text-align: center; border-bottom: 2px solid #A07840; }
+    .hebrew { font-size: 38px; color: #856230; font-family: 'Times New Roman', serif; direction: rtl; display: block; margin-bottom: 8px; font-weight: bold; }
+    .header h1 { font-size: 21px; color: #221A10; letter-spacing: 0.3px; font-weight: normal; }
+    .header p { color: #6F6049; font-size: 13px; margin-top: 6px; }
+    .today-card { background: #FFFDF8; margin: 0; padding: 32px; border-bottom: 1px solid #E4D8C0; }
+    .today-label { font-size: 11px; color: #856230; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+    .today-mishna { font-size: 28px; color: #221A10; font-weight: bold; margin-bottom: 6px; }
+    .today-episode { font-size: 14px; color: #6F6049; margin-bottom: 24px; }
+    .description { background: rgba(160,120,64,0.06); border-left: 3px solid #A07840; padding: 16px 20px; margin-bottom: 24px; font-size: 14px; line-height: 1.7; color: #4A3A24; font-style: italic; }
+    .cta-button { display: block; background: linear-gradient(135deg, #2E2316, #1C160D); color: #F6EAD2 !important; text-decoration: none; padding: 16px 32px; border-radius: 9999px; font-size: 16px; font-weight: bold; text-align: center; letter-spacing: 0.5px; }
+    .progress-section { background: #F4EAD6; padding: 24px 32px; border-bottom: 1px solid #E4D8C0; }
+    .progress-label { font-size: 11px; color: #856230; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+    .progress-numbers { font-size: 22px; color: #221A10; margin-bottom: 4px; }
+    .progress-numbers span { color: #856230; font-weight: bold; }
+    .progress-sub { font-size: 13px; color: #6F6049; margin-bottom: 16px; }
+    .progress-bar-bg { background: #EADBBE; border-radius: 4px; height: 8px; overflow: hidden; }
+    .progress-bar-fill { background: linear-gradient(90deg, #C9A96E, #A07840); height: 8px; border-radius: 4px; }
+    .footer { background: #FBF6EC; padding: 24px 32px; text-align: center; border-top: 1px solid #E4D8C0; }
+    .footer p { font-size: 12px; color: #6F6049; line-height: 1.6; }
+    .footer a { color: #856230; text-decoration: underline; }
+    .quote { font-size: 14px; color: #6F6049; font-style: italic; margin-top: 16px; line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -68,7 +71,7 @@ export function buildDailyReminderEmail(data: DailyReminderData): { subject: str
 
       ${episodeDescription ? `<div class="description">${episodeDescription.substring(0, 400)}${episodeDescription.length > 400 ? '...' : ''}</div>` : ''}
 
-      <a href="${listenUrl}" class="cta-button">▶ Listen Now</a>
+      <a href="${listenUrl}" class="cta-button">&#9654;&nbsp; Listen Now</a>
     </div>
 
     <div class="progress-section">
@@ -128,22 +131,22 @@ export function buildWelcomeEmail(data: WelcomeEmailData): { subject: string; ht
   <title>${subject}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: #040d1a; font-family: 'Georgia', serif; color: #e2d9c5; }
-    .wrapper { max-width: 600px; margin: 0 auto; }
-    .header { background: linear-gradient(135deg, #0c1a35, #163059); padding: 48px 32px; text-align: center; border-bottom: 2px solid #d97706; }
-    .hebrew { font-size: 48px; color: #f59e0b; font-family: 'Times New Roman', serif; direction: rtl; display: block; margin-bottom: 12px; }
-    .header h1 { font-size: 24px; color: #fcd34d; font-weight: normal; }
-    .body { padding: 32px; }
-    .body p { font-size: 15px; line-height: 1.8; color: #cbd5e1; margin-bottom: 16px; }
-    .highlight { color: #fcd34d; font-weight: bold; }
-    .stats { background: #0c1a35; border: 1px solid #1e4480; border-radius: 8px; padding: 24px; margin: 24px 0; display: flex; gap: 16px; text-align: center; }
+    body { background-color: #F4EAD6; font-family: 'Georgia', serif; color: #221A10; }
+    .wrapper { max-width: 600px; margin: 0 auto; background: #FBF6EC; }
+    .header { background: #FBF6EC; padding: 48px 32px; text-align: center; border-bottom: 2px solid #A07840; }
+    .hebrew { font-size: 50px; color: #856230; font-family: 'Times New Roman', serif; direction: rtl; display: block; margin-bottom: 12px; font-weight: bold; }
+    .header h1 { font-size: 24px; color: #221A10; font-weight: normal; }
+    .body { padding: 32px; background: #FFFDF8; }
+    .body p { font-size: 15px; line-height: 1.8; color: #3A2C1B; margin-bottom: 16px; }
+    .highlight { color: #856230; font-weight: bold; }
+    .stats { background: #FBF6EC; border: 1px solid #E4D8C0; border-radius: 8px; padding: 24px; margin: 24px 0; display: flex; gap: 16px; text-align: center; }
     .stat { flex: 1; }
-    .stat-number { font-size: 24px; color: #f59e0b; font-weight: bold; display: block; }
-    .stat-label { font-size: 12px; color: #64748b; }
-    .cta-button { display: block; background: linear-gradient(135deg, #d97706, #f59e0b); color: #040d1a !important; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; margin: 24px 0; }
-    .footer { background: #040d1a; padding: 24px 32px; text-align: center; border-top: 1px solid #112347; }
-    .footer p { font-size: 12px; color: #334155; }
-    .footer a { color: #475569; text-decoration: underline; }
+    .stat-number { font-size: 24px; color: #856230; font-weight: bold; display: block; }
+    .stat-label { font-size: 12px; color: #6F6049; }
+    .cta-button { display: block; background: linear-gradient(135deg, #2E2316, #1C160D); color: #F6EAD2 !important; text-decoration: none; padding: 16px 32px; border-radius: 9999px; font-size: 16px; font-weight: bold; text-align: center; margin: 24px 0; }
+    .footer { background: #FBF6EC; padding: 24px 32px; text-align: center; border-top: 1px solid #E4D8C0; }
+    .footer p { font-size: 12px; color: #6F6049; }
+    .footer a { color: #856230; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -161,9 +164,9 @@ export function buildWelcomeEmail(data: WelcomeEmailData): { subject: string; ht
         <div class="stat"><span class="stat-number">63</span><span class="stat-label">Tractates</span></div>
         <div class="stat"><span class="stat-number">6</span><span class="stat-label">Sedarim</span></div>
       </div>
-      <a href="https://mishna-yomi.com/learn" class="cta-button">Start Learning Today →</a>
+      <a href="https://mishna-yomi.com/learn" class="cta-button">Start Learning Today &rarr;</a>
       <p>Your daily reminder will arrive at your chosen time. You can change your preferences anytime on the website.</p>
-      <p style="font-style: italic; color: #64748b; font-size: 14px;">"כָּל יִשְׂרָאֵל יֵשׁ לָהֶם חֵלֶק לָעוֹלָם הַבָּא"</p>
+      <p style="font-style: italic; color: #6F6049; font-size: 14px;">"כָּל יִשְׂרָאֵל יֵשׁ לָהֶם חֵלֶק לָעוֹלָם הַבָּא"</p>
     </div>
     <div class="footer">
       <p>Signed up as: ${recipientEmail}<br />

@@ -44,9 +44,14 @@ export default function SubscribeForm() {
   if (success) {
     return (
       <div className="card-gold p-8 text-center">
-        <div className="text-4xl mb-3">📬</div>
-        <h3 className="text-lg font-semibold text-gold-300 mb-2">You&apos;re subscribed!</h3>
-        <p className="text-slate-400 text-sm">
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+          style={{ background: 'rgba(201,169,110,0.12)', border: '2px solid rgba(201,169,110,0.3)' }}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--gold-dark)' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--gold-dark)' }}>You&apos;re subscribed!</h3>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
           Check your inbox for a welcome email. Your daily reminder will arrive at your chosen time.
         </p>
       </div>
@@ -58,7 +63,7 @@ export default function SubscribeForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 uppercase tracking-wide">
+            <label className="block text-xs mb-1.5 uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
               Email address
             </label>
             <input
@@ -67,17 +72,19 @@ export default function SubscribeForm() {
               onChange={e => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              className="w-full bg-navy-900 border border-navy-600 rounded-lg px-4 py-3 text-parchment-100 placeholder-slate-600 focus:outline-none focus:border-gold-500 text-sm transition-colors"
+              className="w-full rounded-lg px-4 py-3 text-sm border outline-none transition-colors"
+              style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--fg)' }}
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 uppercase tracking-wide">
+            <label className="block text-xs mb-1.5 uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
               Reminder time
             </label>
             <select
               value={reminderTime}
               onChange={e => setReminderTime(e.target.value)}
-              className="w-full bg-navy-900 border border-navy-600 rounded-lg px-4 py-3 text-parchment-100 focus:outline-none focus:border-gold-500 text-sm transition-colors"
+              className="w-full rounded-lg px-4 py-3 text-sm border outline-none transition-colors cursor-pointer"
+              style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--fg)' }}
             >
               <option value="06:00:00">6:00 AM</option>
               <option value="07:00:00">7:00 AM</option>
@@ -91,7 +98,8 @@ export default function SubscribeForm() {
         </div>
 
         {error && (
-          <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-lg px-4 py-2">
+          <p className="text-sm rounded-lg px-4 py-2 border"
+            style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)', color: '#DC2626' }}>
             {error}
           </p>
         )}
@@ -104,7 +112,7 @@ export default function SubscribeForm() {
           {loading ? 'Subscribing...' : 'Subscribe to Daily Reminders →'}
         </button>
 
-        <p className="text-center text-slate-600 text-xs">
+        <p className="text-center text-xs" style={{ color: 'var(--muted)' }}>
           Free forever. No spam. Unsubscribe anytime.
         </p>
       </form>

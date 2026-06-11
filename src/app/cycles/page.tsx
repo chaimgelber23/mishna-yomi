@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { SeferDivider } from '@/components/Ornament';
 import { SEDARIM, TRACTATE_HEBREW, TOTAL_MISHNAYOT } from '@/lib/mishna-data';
 import {
   CustomCycle,
@@ -157,7 +158,7 @@ export default function CyclesPage() {
   // ── Render helpers ──
 
   const card: React.CSSProperties = {
-    background: '#fff', borderColor: 'var(--border)',
+    background: 'var(--surface)', borderColor: 'var(--border)',
   };
 
   function renderSignedOut() {
@@ -172,7 +173,7 @@ export default function CyclesPage() {
         </p>
         <Link href="/auth/login"
           className="inline-block py-3 px-8 rounded-full font-bold text-white text-sm"
-          style={{ background: 'linear-gradient(135deg, var(--navy), #2d5a8e)', boxShadow: '0 4px 16px rgba(30,58,95,0.3)' }}>
+          style={{ background: 'linear-gradient(135deg, var(--navy), #3D2E1A)', boxShadow: '0 4px 16px rgba(34,26,16,0.3)' }}>
           Sign in to create a cycle
         </Link>
       </div>
@@ -200,7 +201,7 @@ export default function CyclesPage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl p-8 border-2 flex flex-col" style={{ background: '#fff', borderColor: 'var(--gold)' }}>
+        <div className="rounded-2xl p-8 border-2 flex flex-col" style={{ background: 'var(--surface)', borderColor: 'var(--gold)' }}>
           <div className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: 'var(--gold)' }}>
             Option 2
           </div>
@@ -213,7 +214,7 @@ export default function CyclesPage() {
           </p>
           <button onClick={() => setView('wizard')}
             className="py-3 px-6 rounded-full font-bold text-white text-sm cursor-pointer"
-            style={{ background: 'linear-gradient(135deg, var(--navy), #2d5a8e)', boxShadow: '0 4px 16px rgba(30,58,95,0.3)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--navy), #3D2E1A)', boxShadow: '0 4px 16px rgba(34,26,16,0.3)' }}>
             Build my cycle
           </button>
         </div>
@@ -367,7 +368,7 @@ export default function CyclesPage() {
         <div className="flex items-center gap-3">
           <button onClick={handleCreate} disabled={!previewCycle || busy}
             className="py-3 px-8 rounded-full font-bold text-white text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg, var(--navy), #2d5a8e)', boxShadow: '0 4px 16px rgba(30,58,95,0.3)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--navy), #3D2E1A)', boxShadow: '0 4px 16px rgba(34,26,16,0.3)' }}>
             {busy ? 'Creating…' : 'Start my cycle'}
           </button>
           <button onClick={() => setView('choose')}
@@ -448,7 +449,7 @@ export default function CyclesPage() {
                 className="py-3 px-7 rounded-full font-bold text-sm cursor-pointer transition-all border-2"
                 style={doneDays.has(todayNum)
                   ? { background: '#ECFDF5', borderColor: 'rgba(6,95,70,0.3)', color: '#065F46' }
-                  : { background: 'linear-gradient(135deg, var(--navy), #2d5a8e)', borderColor: 'transparent', color: '#fff', boxShadow: '0 4px 16px rgba(30,58,95,0.3)' }}>
+                  : { background: 'linear-gradient(135deg, var(--navy), #3D2E1A)', borderColor: 'transparent', color: '#fff', boxShadow: '0 4px 16px rgba(34,26,16,0.3)' }}>
                 {doneDays.has(todayNum) ? '✓ Done for today' : 'Mark today done'}
               </button>
             </>
@@ -531,9 +532,11 @@ export default function CyclesPage() {
   return (
     <div className="min-h-screen pt-28 pb-20 px-4 sm:px-6" style={{ background: 'var(--bg)' }}>
       <div className="w-full mx-auto" style={{ maxWidth: '880px' }}>
-        <h1 className="text-3xl sm:text-4xl font-bold mb-2" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>
+        <div className="text-hebrew text-2xl mb-2" style={{ color: 'var(--brass-deep)' }}>מחזור שלי</div>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3" style={{ fontFamily: 'var(--font-frank)', color: 'var(--fg)' }}>
           My Cycle
         </h1>
+        <SeferDivider className="mb-5" />
         <p className="text-sm mb-10" style={{ color: 'var(--muted)' }}>
           Learn on your terms — follow the worldwide cycle or build your own path through Shas.
         </p>

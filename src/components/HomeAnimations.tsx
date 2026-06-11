@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FadeIn, StaggerChildren, StaggerItem, MagneticButton } from './animations';
 import SubscribeForm from './SubscribeForm';
 import HeroSection from './HeroSection';
+import { Ornament } from './Ornament';
 import type { SederInfo } from '@/lib/mishna-data';
 
 interface HomeAnimationsProps {
@@ -37,10 +38,10 @@ const FEATURES = [
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
       </svg>
     ),
-    title: 'Official Calendar', desc: 'Stay on the Mishna Yomit schedule. Always know today\'s 2 Mishnayot at a glance.', href: '/calendar',
+    title: 'Your Own Cycle', desc: 'Start from any tractate, set your pace, or pick your siyum date — we\'ll build your daily schedule.', href: '/cycles',
   },
   {
     icon: (
@@ -53,13 +54,14 @@ const FEATURES = [
   },
 ];
 
+/* Six sedarim — muted earth tones that sit on parchment like ink stamps */
 const SEDER_PALETTES = [
-  { bg: 'rgba(201,169,110,0.08)', border: 'rgba(201,169,110,0.25)', text: '#7A5C1E', accent: '#C9A96E' },
-  { bg: 'rgba(30,58,95,0.06)', border: 'rgba(30,58,95,0.18)', text: '#1e3a5f', accent: '#2d5a8e' },
-  { bg: 'rgba(90,60,120,0.06)', border: 'rgba(90,60,120,0.15)', text: '#5B21B6', accent: '#7C3AED' },
-  { bg: 'rgba(6,95,70,0.06)', border: 'rgba(6,95,70,0.15)', text: '#065F46', accent: '#059669' },
-  { bg: 'rgba(159,18,57,0.06)', border: 'rgba(159,18,57,0.15)', text: '#9F1239', accent: '#E11D48' },
-  { bg: 'rgba(21,94,117,0.06)', border: 'rgba(21,94,117,0.15)', text: '#155E75', accent: '#0891B2' },
+  { bg: 'rgba(160,120,64,0.09)',  border: 'rgba(160,120,64,0.28)', text: '#856230', accent: '#A07840' }, // brass
+  { bg: 'rgba(74,58,36,0.07)',    border: 'rgba(74,58,36,0.20)',   text: '#4A3A24', accent: '#3D2E1A' }, // espresso
+  { bg: 'rgba(107,76,42,0.07)',   border: 'rgba(107,76,42,0.18)',  text: '#6B4C2A', accent: '#8A5A2B' }, // umber
+  { bg: 'rgba(74,86,52,0.07)',    border: 'rgba(74,86,52,0.18)',   text: '#4A5634', accent: '#5E6B3A' }, // olive
+  { bg: 'rgba(122,52,46,0.07)',   border: 'rgba(122,52,46,0.18)',  text: '#7A342E', accent: '#94413A' }, // terracotta
+  { bg: 'rgba(61,73,84,0.07)',    border: 'rgba(61,73,84,0.18)',   text: '#3D4954', accent: '#516170' }, // slate
 ];
 
 export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot, totalTractates: _totalTractates, totalSedarim: _totalSedarim, sedarim }: HomeAnimationsProps) {
@@ -96,7 +98,7 @@ export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot,
       </section>
 
       {/* ── FEATURES ── */}
-      <section className="py-20" style={{ background: '#fff' }}>
+      <section className="py-20" style={{ background: 'var(--surface)' }}>
         <div className="px-6 lg:px-10" style={{ maxWidth: '1152px', margin: '0 auto' }}>
           <FadeIn direction="up" delay={0}>
             <div className="text-center mb-14">
@@ -118,13 +120,13 @@ export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot,
                 <Link href={f.href}
                   className="card group p-7 h-full flex flex-col hover:shadow-lg transition-all duration-300 cursor-pointer"
                   style={{ borderColor: 'var(--border)' }}>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110"
-                    style={{ background: 'rgba(30,58,95,0.07)', color: 'var(--navy)' }}>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110"
+                    style={{ background: 'rgba(160,120,64,0.10)', color: 'var(--brass-deep)', border: '1px solid rgba(160,120,64,0.2)' }}>
                     {f.icon}
                   </div>
                   <h3 className="font-bold mb-2 text-base" style={{ color: 'var(--fg)' }}>{f.title}</h3>
                   <p className="text-sm leading-relaxed flex-1" style={{ color: 'var(--muted)', lineHeight: 1.65 }}>{f.desc}</p>
-                  <div className="mt-4 flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--navy)' }}>
+                  <div className="mt-4 flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--brass-deep)' }}>
                     <span>Explore</span>
                     <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -173,7 +175,7 @@ export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot,
       </section>
 
       {/* ── SUBSCRIBE ── */}
-      <section id="subscribe" className="py-20" style={{ background: '#fff' }}>
+      <section id="subscribe" className="py-20" style={{ background: 'var(--surface)' }}>
         <FadeIn direction="up" delay={0}>
           <div className="px-6 lg:px-10 text-center" style={{ maxWidth: '640px', margin: '0 auto' }}>
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--gold)' }}>
@@ -195,15 +197,15 @@ export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot,
         <FadeIn direction="up" delay={0}>
           <div className="px-6 text-center" style={{ maxWidth: '600px', margin: '0 auto' }}>
 
-            {/* Gold ornament */}
+            {/* Brass ornament */}
             <div className="flex items-center justify-center gap-3 mb-8">
-              <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, var(--gold))' }} />
-              <span style={{ color: 'var(--gold)', fontSize: '18px' }}>✦</span>
-              <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, var(--gold), transparent)' }} />
+              <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, var(--brass))' }} />
+              <Ornament size={16} />
+              <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, var(--brass), transparent)' }} />
             </div>
 
             <p className="text-2xl sm:text-3xl mb-5 leading-relaxed"
-              style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', color: 'var(--navy)', fontWeight: 600 }}>
+              style={{ fontFamily: 'var(--font-hebrew)', direction: 'rtl', color: 'var(--ink)', fontWeight: 700 }}>
               &ldquo;כָּל יִשְׂרָאֵל יֵשׁ לָהֶם חֵלֶק לָעוֹלָם הַבָּא&rdquo;
             </p>
             <p className="text-sm mb-8" style={{ color: 'var(--muted)' }}>

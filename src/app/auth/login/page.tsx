@@ -31,14 +31,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-20"
-      style={{ background: 'linear-gradient(160deg, #FAFAF8 0%, #F5EFE3 50%, #EAE0CC 100%)' }}>
+      style={{ background: 'linear-gradient(160deg, #FBF6EC 0%, #F4EAD6 50%, #EADBBE 100%)' }}>
 
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div style={{ position: 'absolute', top: '-10%', right: '-5%', width: '600px', height: '600px', borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(201,169,110,0.18) 0%, transparent 65%)' }} />
         <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: '500px', height: '500px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(30,58,95,0.07) 0%, transparent 65%)' }} />
+          background: 'radial-gradient(circle, rgba(34,26,16,0.07) 0%, transparent 65%)' }} />
       </div>
 
       <motion.div
@@ -51,7 +51,7 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex flex-col items-center gap-2 group">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1 transition-transform group-hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, var(--navy), #2d5a8e)', boxShadow: '0 8px 24px rgba(30,58,95,0.25)' }}>
+              style={{ background: 'linear-gradient(135deg, var(--navy), #3D2E1A)', boxShadow: '0 8px 24px rgba(34,26,16,0.25)' }}>
               <span className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-hebrew)' }}>מ</span>
             </div>
             <span className="font-bold text-xl" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--navy)' }}>
@@ -65,7 +65,7 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="rounded-2xl p-8 border"
-          style={{ background: 'rgba(255,255,255,0.92)', borderColor: 'var(--border)', boxShadow: '0 8px 40px rgba(30,58,95,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
+          style={{ background: 'rgba(255,255,255,0.92)', borderColor: 'var(--border)', boxShadow: '0 8px 40px rgba(34,26,16,0.08), 0 1px 2px rgba(0,0,0,0.04)' }}>
 
           {!sent ? (
             <>
@@ -103,7 +103,7 @@ export default function LoginPage() {
 
                 <button type="submit" disabled={loading || !email}
                   className="w-full py-3.5 rounded-full font-bold text-white text-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: loading ? 'var(--navy)' : 'linear-gradient(135deg, var(--navy), #2d5a8e)', boxShadow: '0 4px 16px rgba(30,58,95,0.3)' }}
+                  style={{ background: loading ? 'var(--navy)' : 'linear-gradient(135deg, var(--navy), #3D2E1A)', boxShadow: '0 4px 16px rgba(34,26,16,0.3)' }}
                   onMouseOver={e => { if (!loading && email) e.currentTarget.style.transform = 'translateY(-1px)'; }}
                   onMouseOut={e => { e.currentTarget.style.transform = 'none'; }}>
                   {loading ? (

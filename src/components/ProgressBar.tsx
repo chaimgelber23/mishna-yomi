@@ -39,13 +39,13 @@ export default function ProgressBar({
     <div className={`w-full ${className}`}>
       {showLabel && total !== undefined && completed !== undefined && (
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs" style={{ color: 'var(--muted)' }}>
             {completed.toLocaleString()} / {total.toLocaleString()}
           </span>
-          <span className="text-xs font-bold text-gold-400">{pct.toFixed(1)}%</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--gold-dark)' }}>{pct.toFixed(1)}%</span>
         </div>
       )}
-      <div className={`w-full bg-navy-700 rounded-full overflow-hidden ${heightMap[height]}`}>
+      <div className={`w-full rounded-full overflow-hidden ${heightMap[height]}`} style={{ background: 'rgba(0,0,0,0.06)' }}>
         <div
           className={`${heightMap[height]} bg-gradient-to-r ${colorMap[color]} rounded-full transition-all duration-700 ease-out ${animate ? 'animate-shimmer' : ''}`}
           style={{ width: `${pct}%` }}

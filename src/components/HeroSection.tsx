@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { MagneticButton, CountUp } from './animations';
+import { Ornament } from './Ornament';
 
 const FLOATING_LETTERS = ['מ', 'ש', 'נ', 'ה', 'י', 'ו', 'מ', 'י', 'ב', 'ר', 'כ', 'ה'];
 
@@ -13,36 +14,36 @@ const PARTICLES = FLOATING_LETTERS.map((letter, i) => ({
   size: [64, 48, 80, 56, 96, 44, 72, 52, 88, 60, 40, 76][i],
   delay: i * 0.4,
   duration: 6 + (i % 4) * 2,
-  opacity: [0.04, 0.055, 0.035, 0.06, 0.03, 0.05, 0.04, 0.045, 0.035, 0.05, 0.04, 0.03][i],
+  opacity: [0.05, 0.07, 0.045, 0.075, 0.04, 0.06, 0.05, 0.055, 0.045, 0.065, 0.05, 0.04][i],
 }));
 
 export default function HeroSection() {
   return (
     <section className="relative overflow-hidden"
       style={{
-        background: 'linear-gradient(160deg, #FAFAF8 0%, #F5EFE3 45%, #EAE0CC 100%)',
+        background: 'linear-gradient(165deg, #FBF6EC 0%, #F4EAD6 48%, #EADBBE 100%)',
         minHeight: '94vh',
         display: 'flex',
         alignItems: 'center',
       }}>
 
-      {/* ── Radial glow layers ── */}
+      {/* ── Radial glow layers — warm brass light ── */}
       <div className="absolute inset-0 pointer-events-none">
         <div style={{
           position: 'absolute', top: '-10%', right: '-5%',
           width: '800px', height: '800px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,169,110,0.22) 0%, rgba(201,169,110,0.06) 40%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(160,120,64,0.24) 0%, rgba(160,120,64,0.07) 40%, transparent 70%)',
           filter: 'blur(1px)',
         }} />
         <div style={{
           position: 'absolute', bottom: '-20%', left: '-10%',
           width: '600px', height: '600px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(30,58,95,0.09) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(133,98,48,0.10) 0%, transparent 65%)',
         }} />
         <div style={{
           position: 'absolute', top: '30%', left: '40%',
           width: '400px', height: '400px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,169,110,0.08) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(230,201,130,0.12) 0%, transparent 65%)',
         }} />
       </div>
 
@@ -50,13 +51,14 @@ export default function HeroSection() {
       <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
         {PARTICLES.map((p, i) => (
           <motion.span key={i}
-            className="absolute font-bold"
+            className="absolute"
             style={{
               left: `${p.x}%`,
               top: `${p.y}%`,
               fontSize: `${p.size}px`,
-              color: `rgba(30,58,95,${p.opacity})`,
-              fontFamily: 'var(--font-hebrew)',
+              color: `rgba(133,98,48,${p.opacity})`,
+              fontFamily: 'var(--font-frank)',
+              fontWeight: 700,
               direction: 'rtl',
               lineHeight: 1,
             }}
@@ -87,9 +89,9 @@ export default function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
             className="inline-flex items-center gap-2.5 rounded-full px-5 py-2 mb-10 border"
-            style={{ background: 'rgba(201,169,110,0.08)', borderColor: 'rgba(201,169,110,0.28)' }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--gold)' }} />
-            <span className="text-xs font-semibold tracking-wide" style={{ color: 'var(--gold-dark)' }}>
+            style={{ background: 'rgba(160,120,64,0.08)', borderColor: 'rgba(160,120,64,0.3)' }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--brass)' }} />
+            <span className="text-xs font-semibold tracking-wide" style={{ color: 'var(--brass-deep)' }}>
               Official Mishna Yomit Program
             </span>
           </motion.div>
@@ -97,13 +99,13 @@ export default function HeroSection() {
           {/* Giant Hebrew title */}
           <motion.div
             style={{
-              fontFamily: 'var(--font-hebrew)',
+              fontFamily: 'var(--font-frank)',
               direction: 'rtl',
-              fontSize: 'clamp(72px, 12vw, 120px)',
-              color: 'var(--navy)',
-              fontWeight: 700,
+              fontSize: 'clamp(76px, 12vw, 128px)',
+              color: 'var(--ink)',
+              fontWeight: 900,
               lineHeight: 1,
-              letterSpacing: '-0.01em',
+              letterSpacing: '-0.005em',
             }}
             initial={{ opacity: 0, y: 50, filter: 'blur(8px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
@@ -113,19 +115,21 @@ export default function HeroSection() {
 
           {/* Gold rule */}
           <motion.div
-            className="my-6 flex items-center gap-4"
-            style={{ maxWidth: '260px' }}
+            className="my-6"
             initial={{ opacity: 0, scaleX: 0 }}
             animate={{ opacity: 1, scaleX: 1 }}
+            style={{ transformOrigin: 'left' }}
             transition={{ duration: 0.7, delay: 0.45, ease: [0.21, 0.47, 0.32, 0.98] }}>
-            <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, var(--gold), transparent)' }} />
-            <span style={{ color: 'var(--gold)', fontSize: '13px' }}>✦</span>
-            <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--gold))' }} />
+            <div className="flex items-center gap-4" style={{ maxWidth: '280px' }}>
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, var(--brass), transparent)' }} />
+              <Ornament size={13} />
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--brass))' }} />
+            </div>
           </motion.div>
 
           {/* English headline */}
           <motion.h1
-            style={{ fontFamily: 'var(--font-playfair)', fontSize: 'clamp(26px, 3.5vw, 42px)', color: 'var(--fg)', lineHeight: 1.25, fontWeight: 700 }}
+            style={{ fontFamily: 'var(--font-frank)', fontSize: 'clamp(28px, 3.5vw, 44px)', color: 'var(--ink)', lineHeight: 1.22, fontWeight: 700 }}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.5, ease: [0.21, 0.47, 0.32, 0.98] }}
@@ -140,8 +144,9 @@ export default function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.58 }}
             className="mb-10">
-            Two Mishnayot every day. Follow the official Mishna Yomit calendar,
-            listen to the podcast, track your progress, and complete the entire Mishnah.
+            Finish all of Shas — your way. Follow the worldwide Mishna Yomit calendar,
+            or build your own cycle: start anywhere, set your pace, even pick the date
+            of your siyum. Listen, track, and never lose your place.
           </motion.p>
 
           {/* CTA buttons */}
@@ -157,24 +162,24 @@ export default function HeroSection() {
                 Start Learning Today
               </Link>
             </MagneticButton>
-            <Link href="/browse" className="btn-ghost"
+            <Link href="/cycles" className="btn-ghost"
               style={{ fontSize: '0.9375rem', padding: '0.875rem 2.25rem' }}>
-              Browse Tractates
+              Create Your Own Cycle
             </Link>
           </motion.div>
 
           {/* Dedication */}
           <motion.div
             className="inline-flex items-center gap-2.5 mb-8 px-4 py-2 rounded-full border"
-            style={{ background: 'rgba(201,169,110,0.06)', borderColor: 'rgba(201,169,110,0.2)' }}
+            style={{ background: 'rgba(160,120,64,0.06)', borderColor: 'rgba(160,120,64,0.22)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.72 }}>
-            <span style={{ color: 'var(--gold)', fontSize: '11px' }}>✦</span>
-            <span className="text-xs italic" style={{ color: 'var(--gold-dark)', letterSpacing: '0.03em' }}>
+            <Ornament size={10} />
+            <span className="text-xs italic" style={{ color: 'var(--brass-deep)', letterSpacing: '0.03em' }}>
               L&apos;ilui Nishmas Etta Ahuva bas Yaakov
             </span>
-            <span style={{ color: 'var(--gold)', fontSize: '11px' }}>✦</span>
+            <Ornament size={10} />
           </motion.div>
 
           {/* Stats */}
@@ -188,10 +193,10 @@ export default function HeroSection() {
               <CountUp to={4192} duration={2.2} className="font-bold text-base" />
               <span>Mishnayot</span>
             </div>
-            <span style={{ color: 'var(--border)' }}>|</span>
-            <span><strong style={{ color: 'var(--navy)' }}>63</strong> Tractates</span>
-            <span style={{ color: 'var(--border)' }}>|</span>
-            <span><strong style={{ color: 'var(--navy)' }}>6</strong> Sedarim</span>
+            <span style={{ color: 'var(--rule)' }}>|</span>
+            <span><strong style={{ color: 'var(--ink)' }}>63</strong> Tractates</span>
+            <span style={{ color: 'var(--rule)' }}>|</span>
+            <span><strong style={{ color: 'var(--ink)' }}>6</strong> Sedarim</span>
           </motion.div>
         </div>
       </div>
