@@ -21,10 +21,5 @@ jobs:
             "${{ secrets.SITE_URL }}/api/sync-rss" \
             | jq .
 
-      - name: Send daily emails
-        run: |
-          curl -s -X POST \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            "${{ secrets.SITE_URL }}/api/cron/daily-email" \
-            | jq .
+      # Daily-email dispatch moved to .github/workflows/daily-email.yml (hourly),
+      # because the timezone-aware route must run every hour, not once a day.

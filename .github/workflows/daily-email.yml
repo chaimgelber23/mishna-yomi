@@ -1,0 +1,22 @@
+name: Hourly Daily-Email Dispatch
+
+on:
+  schedule:
+    # Hourly. The /api/cron/daily-email route emails each subscriber only when
+    # the current hour matches THEIR local reminder time, so it must run every
+    # hour for timezone-correct delivery (a daily-only run misses most zones).
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send due daily emails
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.SITE_URL }}/api/cron/daily-email" \
+            | jq .
