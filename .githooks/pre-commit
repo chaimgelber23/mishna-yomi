@@ -1,0 +1,27 @@
+#!/bin/bash
+# Pre-commit guard — blocks lint debt from returning, and preserves secret scanning.
+#
+# Wired via the repo-local `core.hooksPath=.githooks` setting that `npm run prepare`
+# installs. Because that override shadows the machine-global secret scanner at
+# ~/.git-hooks/pre-commit, this hook invokes that scanner explicitly first so secret
+# protection is never silently lost on this repo.
+set -uo pipefail
+
+# 1) Machine-global secret scanner (if present) — fail closed on any secret.
+GLOBAL_HOOK="$HOME/.git-hooks/pre-commit"
+if [ -x "$GLOBAL_HOOK" ]; then
+  "$GLOBAL_HOOK" || exit 1
+fi
+
+# 2) ESLint must stay at zero. Only run when TS/JS is actually staged.
+STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|mjs|cjs)$' || true)
+if [ -n "$STAGED" ]; then
+  echo "pre-commit: staged TS/JS detected — running ESLint (zero-warning gate)…"
+  if ! npx eslint . --max-warnings 0; then
+    echo "" >&2
+    echo "pre-commit: ESLint reported problems — commit blocked." >&2
+    echo "            Fix them (npm run lint) and re-commit. Do not use --no-verify." >&2
+    exit 1
+  fi
+fi
+exit 0

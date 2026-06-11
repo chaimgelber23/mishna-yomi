@@ -36,13 +36,12 @@ export { createAuthClient as createClient };
 
 // Service client — bypasses RLS, no cookies needed
 export function createServiceClient() {
-  // On Cloudflare Pages edge, NEXT_PUBLIC_* are build-time only.
-  // Fall through several var names; hardcode URL as final fallback (it's public).
+  // Fall through several var names so this works across hosting platforms.
+  // No hardcoded fallback — fail loudly if the env var is missing.
   const url =
     process.env.MISHNA_SUPABASE_URL ??
     process.env.SUPABASE_URL ??
-    process.env.NEXT_PUBLIC_SUPABASE_URL ??
-    'https://trakxowvjsosbzbbfoxq.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {

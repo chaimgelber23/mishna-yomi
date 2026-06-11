@@ -116,7 +116,7 @@ export default function ProgressPage() {
       setLoading(false);
     }
     load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const overallPct = TOTAL_MISHNAYOT > 0 ? (completedCount / TOTAL_MISHNAYOT) * 100 : 0;
   const projectedDate = projectCompletionDate(completedCount);

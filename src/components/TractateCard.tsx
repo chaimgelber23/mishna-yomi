@@ -90,7 +90,7 @@ export default function TractateCard({
           <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Chapters</p>
           <div className="grid grid-cols-6 gap-1">
             {tractate.chapters.map((mishnaCount, ci) => {
-              const chapterIdx = ci;
+              const _chapterIdx = ci;
               // We can't know exact per-chapter completion without deeper data here
               // Show chapter count info
               return (

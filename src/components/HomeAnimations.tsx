@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { FadeIn, StaggerChildren, StaggerItem, MagneticButton } from './animations';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import SubscribeForm from './SubscribeForm';
 import HeroSection from './HeroSection';
 import type { SederInfo } from '@/lib/mishna-data';
@@ -63,7 +62,7 @@ const SEDER_PALETTES = [
   { bg: 'rgba(21,94,117,0.06)', border: 'rgba(21,94,117,0.15)', text: '#155E75', accent: '#0891B2' },
 ];
 
-export default function HomeAnimations({ today, totalMishnayot, totalTractates, totalSedarim, sedarim }: HomeAnimationsProps) {
+export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot, totalTractates: _totalTractates, totalSedarim: _totalSedarim, sedarim }: HomeAnimationsProps) {
   return (
     <>
       <HeroSection />

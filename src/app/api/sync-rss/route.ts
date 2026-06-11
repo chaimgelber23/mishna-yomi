@@ -11,7 +11,11 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  // Fail hard if the secret is not configured — never run unprotected.
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+  }
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
     const episodes = await fetchRSSFeed();
 
     let inserted = 0;
-    let updated = 0;
+    const updated = 0;
     let errors = 0;
 
     for (const ep of episodes) {

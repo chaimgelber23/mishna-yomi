@@ -1,7 +1,5 @@
-import Link from 'next/link';
 import { getTodaySummary } from '@/lib/calendar';
 import { TOTAL_MISHNAYOT, MISHNA_STRUCTURE, SEDARIM } from '@/lib/mishna-data';
-import SubscribeForm from '@/components/SubscribeForm';
 import HomeAnimations from '@/components/HomeAnimations';
 
 export const runtime = 'edge';

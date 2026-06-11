@@ -15,10 +15,18 @@ export default function SubscribeForm() {
     setError('');
 
     try {
+      // Auto-detect the visitor's timezone so reminders arrive at THEIR local time
+      let timezone = 'America/New_York';
+      try {
+        timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || timezone;
+      } catch {
+        // keep default
+      }
+
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, reminderTime }),
+        body: JSON.stringify({ email, reminderTime, timezone }),
       });
       const data = await res.json();
       if (!res.ok) {

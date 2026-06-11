@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import AudioPlayer from '@/components/AudioPlayer';
 import EpisodeCard from '@/components/EpisodeCard';
-import { getTodaySummary, getMishnaPairLabel } from '@/lib/calendar';
+import {
+  getTodaySummary,
+} from '@/lib/calendar';
 import Link from 'next/link';
 
 interface Episode {
@@ -42,6 +44,7 @@ export default function LearnPage() {
   const supabaseRef = useRef<SupabaseClient | null>(null);
   function getSupabase() {
     if (!supabaseRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { createClient } = require('@/lib/supabase/client');
       supabaseRef.current = createClient();
     }
@@ -356,7 +359,7 @@ export default function LearnPage() {
 
           {/* Episode list */}
           <div className="space-y-1.5 max-h-[600px] overflow-y-auto pr-1">
-            {displayedEpisodes.map((ep, idx) => {
+            {displayedEpisodes.map((ep, _idx) => {
               const realIdx = episodes.indexOf(ep);
               return (
                 <EpisodeCard

@@ -1,4 +1,8 @@
-import { DAY_TO_MISHNAYOT, MishnaReference, ALL_MISHNAYOT, TOTAL_MISHNAYOT } from './mishna-data';
+import {
+  DAY_TO_MISHNAYOT,
+  MishnaReference,
+  TOTAL_MISHNAYOT,
+} from './mishna-data';
 
 // The current Mishna Yomit cycle started on December 25, 2021 (21 Tevet 5782)
 export const CYCLE_START = new Date('2021-12-25T00:00:00.000Z');

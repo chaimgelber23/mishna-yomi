@@ -11,11 +11,38 @@ export async function GET(request: NextRequest) {
   return POST(request);
 }
 
+/**
+ * Returns the current hour (0-23) in the given IANA timezone.
+ * Falls back to UTC if the timezone string is invalid.
+ */
+function currentHourInTz(tz: string | null | undefined): number {
+  try {
+    const hourStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz || 'UTC',
+      hour: 'numeric',
+      hour12: false,
+    }).format(new Date());
+    return parseInt(hourStr, 10) % 24;
+  } catch {
+    return new Date().getUTCHours();
+  }
+}
+
+/** Parses 'HH:MM:SS' to the hour as a number, defaulting to 8. */
+function reminderHour(time: string | null | undefined): number {
+  const h = parseInt((time || '08:00:00').split(':')[0], 10);
+  return Number.isFinite(h) ? h : 8;
+}
+
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  // Fail hard if the secret is not configured — never run unprotected.
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+  }
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -41,28 +68,27 @@ export async function POST(request: NextRequest) {
     ? `${siteUrl}/learn?episode=${episode.id}`
     : `${siteUrl}/learn`;
 
-  // Get current UTC hour to send emails at the right time
-  const nowHour = new Date().getUTCHours();
-  // We'll send emails whose preferred time matches current UTC hour (±1 buffer)
-  const hourStr = String(nowHour).padStart(2, '0') + ':00:00';
-
-  // Get subscribers due for this hour
-  const { data: subscribers, error: subError } = await supabase
+  // Fetch all active subscribers, then filter by each subscriber's OWN timezone:
+  // a subscriber is due when the current hour in their timezone matches their
+  // chosen reminder hour. (Run this cron hourly.)
+  const { data: allSubscribers, error: subError } = await supabase
     .from('mishna_email_subscribers')
     .select('*')
-    .eq('subscribed', true)
-    .gte('daily_reminder_time', `${String(nowHour).padStart(2, '0')}:00:00`)
-    .lt('daily_reminder_time', `${String(nowHour + 1).padStart(2, '0')}:00:00`);
+    .eq('subscribed', true);
 
   if (subError) {
     console.error('Subscriber query error:', subError);
     return NextResponse.json({ error: subError.message }, { status: 500 });
   }
 
+  const subscribers = (allSubscribers || []).filter(
+    s => currentHourInTz(s.daily_reminder_tz) === reminderHour(s.daily_reminder_time)
+  );
+
   let sent = 0;
   let failed = 0;
 
-  for (const subscriber of subscribers || []) {
+  for (const subscriber of subscribers) {
     try {
       const unsubscribeUrl = `${siteUrl}/unsubscribe?token=${subscriber.unsubscribe_token}`;
 
@@ -91,15 +117,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Also send to authenticated users (mishna_users with subscribed_to_emails = true)
-  const { data: authUsers } = await supabase
+  // Also send to authenticated users (mishna_users with subscribed_to_emails = true),
+  // filtered by each user's own timezone.
+  const { data: allAuthUsers } = await supabase
     .from('mishna_users')
     .select('*')
-    .eq('subscribed_to_emails', true)
-    .gte('daily_reminder_time', `${String(nowHour).padStart(2, '0')}:00:00`)
-    .lt('daily_reminder_time', `${String(nowHour + 1).padStart(2, '0')}:00:00`);
+    .eq('subscribed_to_emails', true);
 
-  for (const user of authUsers || []) {
+  const authUsers = (allAuthUsers || []).filter(
+    u => currentHourInTz(u.daily_reminder_tz) === reminderHour(u.daily_reminder_time)
+  );
+
+  for (const user of authUsers) {
     try {
       // Get user's completion count
       const { count } = await supabase
@@ -141,7 +170,6 @@ export async function POST(request: NextRequest) {
     today: label,
     dayNumber,
     episodeFound: !!episode,
-    hourWindow: hourStr,
     subscribersSent: sent,
     failed,
   });

@@ -42,6 +42,7 @@ export default function BrowsePage() {
   const [selectedChapter, setSelectedChapter]   = useState<number | null>(null);
   const [episodes, setEpisodes]                 = useState<EpisodeStub[]>([]);
   const [progress, setProgress]                 = useState<Record<string, boolean>>({});
+  const [progressNotice, setProgressNotice]     = useState<'signed-out' | 'error' | null>(null);
 
   useEffect(() => {
     if (!selectedTractate) return;
@@ -50,7 +51,10 @@ export default function BrowsePage() {
   }, [selectedTractate]);
 
   useEffect(() => {
-    fetch('/api/progress').then(r => r.json()).then(data => {
+    fetch('/api/progress').then(async r => {
+      if (r.status === 401) { setProgressNotice('signed-out'); return; }
+      if (!r.ok)            { setProgressNotice('error'); return; }
+      const data = await r.json();
       if (data.progress) {
         const map: Record<string, boolean> = {};
         for (const p of data.progress) {
@@ -63,7 +67,7 @@ export default function BrowsePage() {
         }
         setProgress(map);
       }
-    }).catch(() => {});
+    }).catch(() => setProgressNotice('error'));
   }, []);
 
   const crumbs: Crumb[] = [{ label: 'All Sedarim', level: 'seder' }];
@@ -334,6 +338,23 @@ export default function BrowsePage() {
       </div>
 
       <main className="px-6 lg:px-10 py-8" style={{ maxWidth: '1152px', margin: '0 auto' }}>
+        {/* Progress status notice */}
+        {progressNotice === 'signed-out' && (
+          <div className="mb-6 flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl border text-sm"
+            style={{ background: 'rgba(201,169,110,0.07)', borderColor: 'rgba(201,169,110,0.25)', color: 'var(--fg)' }}>
+            <span>You&apos;re browsing as a guest — sign in to see and track your progress.</span>
+            <Link href="/auth/login" className="font-semibold whitespace-nowrap" style={{ color: 'var(--navy)' }}>
+              Sign in →
+            </Link>
+          </div>
+        )}
+        {progressNotice === 'error' && (
+          <div className="mb-6 px-5 py-3.5 rounded-xl border text-sm"
+            style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)', color: '#B91C1C' }}>
+            We couldn&apos;t load your progress right now. Your completed mishnayot are safe — try refreshing.
+          </div>
+        )}
+
         {/* Back button */}
         {level !== 'seder' && (
           <button

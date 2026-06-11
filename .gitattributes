@@ -1,0 +1,4 @@
+# The pre-commit hook and any shell scripts must stay LF — a CRLF shebang
+# breaks /bin/bash on macOS/Linux and Git-Bash on Windows.
+.githooks/pre-commit text eol=lf
+*.sh text eol=lf

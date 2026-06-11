@@ -1,0 +1,21 @@
+name: Lint
+
+# Keeps ESLint at zero and TypeScript green on every push / PR.
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: ESLint (zero warnings)
+        run: npx eslint . --max-warnings 0
+      - name: TypeScript (no emit)
+        run: npx tsc --noEmit
