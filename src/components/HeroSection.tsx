@@ -81,7 +81,7 @@ export default function HeroSection() {
 
       {/* ── Content ── */}
       <div className="relative w-full px-6 lg:px-10" style={{ maxWidth: '1152px', margin: '0 auto' }}>
-        <div className="max-w-2xl py-28 sm:py-36">
+        <div className="max-w-3xl mx-auto py-28 sm:py-36 flex flex-col items-center text-center">
 
           {/* Badge */}
           <motion.div
@@ -118,9 +118,9 @@ export default function HeroSection() {
             className="my-6"
             initial={{ opacity: 0, scaleX: 0 }}
             animate={{ opacity: 1, scaleX: 1 }}
-            style={{ transformOrigin: 'left' }}
+            style={{ transformOrigin: 'center' }}
             transition={{ duration: 0.7, delay: 0.45, ease: [0.21, 0.47, 0.32, 0.98] }}>
-            <div className="flex items-center gap-4" style={{ maxWidth: '280px' }}>
+            <div className="flex items-center gap-4 mx-auto" style={{ maxWidth: '280px' }}>
               <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, var(--brass), transparent)' }} />
               <Ornament size={13} />
               <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--brass))' }} />
@@ -135,7 +135,7 @@ export default function HeroSection() {
             transition={{ duration: 0.7, delay: 0.5, ease: [0.21, 0.47, 0.32, 0.98] }}
             className="mb-5">
             Daily Mishnah Learning with{' '}
-            <span className="gradient-gold">R&apos; Shloimie Friedman</span>
+            <span className="gradient-gold">R&apos;&nbsp;Shloimie Friedman</span>
           </motion.h1>
 
           <motion.p
@@ -143,7 +143,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.58 }}
-            className="mb-10">
+            className="mb-10 mx-auto">
             Finish all of Shas — your way. Follow the worldwide Mishna Yomit calendar,
             or build your own cycle: start anywhere, set your pace, even pick the date
             of your siyum. Listen, track, and never lose your place.
