@@ -138,9 +138,9 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
               style={{ color: 'var(--muted)' }}>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
             </button>
-            <button onClick={() => skip(-15)} aria-label="Back 15s" className="relative p-1.5 cursor-pointer" style={{ color: 'var(--muted)' }}>
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] font-bold" style={{ color: 'var(--muted)' }}>15</span>
+            <button onClick={() => skip(-10)} aria-label="Back 10 seconds" className="relative p-2 rounded-lg transition-colors cursor-pointer hover:text-[var(--navy)]" style={{ color: 'var(--muted)' }}>
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold leading-none" style={{ transform: 'translateY(1px)' }}>10</span>
             </button>
 
             <button onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}
@@ -151,9 +151,9 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
                 : <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>}
             </button>
 
-            <button onClick={() => skip(30)} aria-label="Forward 30s" className="relative p-1.5 cursor-pointer" style={{ color: 'var(--muted)' }}>
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z"/></svg>
-              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] font-bold" style={{ color: 'var(--muted)' }}>30</span>
+            <button onClick={() => skip(10)} aria-label="Forward 10 seconds" className="relative p-2 rounded-lg transition-colors cursor-pointer hover:text-[var(--navy)]" style={{ color: 'var(--muted)' }}>
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z"/></svg>
+              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold leading-none" style={{ transform: 'translateY(1px)' }}>10</span>
             </button>
             <button onClick={onNext} disabled={!hasNext} aria-label="Next"
               className="p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
