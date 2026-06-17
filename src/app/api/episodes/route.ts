@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 /**

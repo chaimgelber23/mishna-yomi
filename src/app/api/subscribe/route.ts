@@ -3,7 +3,6 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 import { buildWelcomeEmail } from '@/lib/email/templates';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {

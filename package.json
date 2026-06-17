@@ -7,10 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "prepare": "git config core.hooksPath .githooks",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "preview": "npm run pages:build && wrangler pages dev",
-    "deploy": "npm run pages:build && wrangler pages deploy"
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
