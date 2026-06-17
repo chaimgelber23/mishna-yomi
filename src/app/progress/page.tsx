@@ -149,13 +149,29 @@ export default function ProgressPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>Your Progress</h1>
-        {!user && (
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>
-            Showing a sample progress sheet.{' '}
-            <Link href="/auth/login" className="hover:underline font-medium" style={{ color: 'var(--gold-dark)' }}>Sign in</Link> to track your real progress.
-          </p>
-        )}
       </div>
+
+      {/* Guest banner — make it unmistakable that sign-in is required to track real progress */}
+      {!user && (
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 rounded-xl border"
+          style={{ background: 'rgba(201,169,110,0.08)', borderColor: 'rgba(201,169,110,0.3)' }}>
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--gold-dark)' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 11c0-1.105.895-2 2-2s2 .895 2 2m-8 0a4 4 0 118 0v0M5 11h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--fg)' }}>You&apos;re not signed in</p>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                The numbers below are just a sample. Sign in to track and save your real progress across devices.
+              </p>
+            </div>
+          </div>
+          <Link href="/auth/login"
+            className="btn-gold px-5 py-2.5 rounded-lg text-sm whitespace-nowrap text-center flex-shrink-0">
+            Sign in to track progress
+          </Link>
+        </div>
+      )}
 
       {/* Overall progress card */}
       <div className="card-gold p-6 sm:p-8 mb-8">

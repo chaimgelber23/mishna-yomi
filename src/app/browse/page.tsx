@@ -45,6 +45,14 @@ export default function BrowsePage() {
   const [progress, setProgress]                 = useState<Record<string, boolean>>({});
   const [progressNotice, setProgressNotice]     = useState<'signed-out' | 'error' | null>(null);
 
+  // Deep-link: /browse?seder=Zeraim pre-selects that seder (from the homepage cards)
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get('seder');
+    if (!param) return;
+    const match = SEDARIM.find(s => s.name.toLowerCase() === param.toLowerCase());
+    if (match) { setSelectedSeder(match); setLevel('tractate'); }
+  }, []);
+
   useEffect(() => {
     if (!selectedTractate) return;
     fetch(`/api/episodes?tractate=${encodeURIComponent(selectedTractate.tractate)}`)

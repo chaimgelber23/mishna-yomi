@@ -39,7 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <footer className="border-t py-12 px-6 lg:px-10" style={{ background: 'var(--parchment)', borderColor: 'var(--rule)' }}>
           <div style={{ maxWidth: '1152px', margin: '0 auto' }}
-            className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-8">
+
+            {/* Left — logo */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center sefer-frame"
                 style={{ background: 'linear-gradient(135deg, var(--ink-grad-a), var(--ink-grad-b))' }}>
@@ -54,25 +56,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-6 text-sm" style={{ color: 'var(--muted)' }}>
-              {[
-                { href: '/learn', label: 'Learn' },
-                { href: '/cycles', label: 'My Cycle' },
-                { href: '/browse', label: 'Browse' },
-                { href: '/progress', label: 'Progress' },
-                { href: '/calendar', label: 'Calendar' },
-              ].map(({ href, label }) => (
-                <Link key={href} href={href} className="footer-link">
-                  {label}
-                </Link>
-              ))}
+
+            {/* Right — nav links + stats */}
+            <div className="flex flex-col items-center sm:items-end gap-3">
+              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2 text-sm" style={{ color: 'var(--muted)' }}>
+                {[
+                  { href: '/learn', label: 'Learn' },
+                  { href: '/cycles', label: 'My Cycle' },
+                  { href: '/browse', label: 'Browse' },
+                  { href: '/progress', label: 'Progress' },
+                  { href: '/calendar', label: 'Calendar' },
+                ].map(({ href, label }) => (
+                  <Link key={href} href={href} className="footer-link">
+                    {label}
+                  </Link>
+                ))}
+              </div>
+              <p className="text-xs text-center sm:text-right" style={{ color: 'var(--muted)' }}>
+                4,192 Mishnayot · 63 Tractates · 6 Sedarim
+                <span className="block mt-1 italic" style={{ color: 'var(--brass-deep)', fontSize: '11px' }}>
+                  L&apos;ilui Nishmas Etta Ahuva bas Yaakov
+                </span>
+              </p>
             </div>
-            <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
-              4,192 Mishnayot · 63 Tractates · 6 Sedarim
-              <span className="block mt-1 italic" style={{ color: 'var(--brass-deep)', fontSize: '11px' }}>
-                L&apos;ilui Nishmas Etta Ahuva bas Yaakov
-              </span>
-            </p>
           </div>
         </footer>
       </body>

@@ -39,6 +39,8 @@ const TRACTATE_MAP: Record<string, string> = {
   'Bechoros':       'Bekhorot',
   'Erchin':         'Arakhin',
   'Kerisus':        'Keritot',
+  'Midos':          'Middot',
+  'Kinim':          'Kinnim',
   // Seder Taharot
   'Nida':           'Niddah',
 };
@@ -70,18 +72,26 @@ function attr(xml: string, tagName: string, attrName: string): string | null {
 }
 
 /**
- * Parse episode title → tractate + mishna references
+ * Parse episode title → tractate + mishna references.
+ *
+ * The feed appends a trailing credit/dedication to every title, e.g.
+ *   "Mishna Yomi - Kelim 11:5-6 - By R' Shloimie Friedman"
+ *   "Mishna Yomi - Kelim 3:5-6 - L'uli Nishmas Etta Ahuva bas Yaakov"
+ *   "Mishna Yomi - Midos 2:2-3- By R' Shloimie Friedman"   (no space before dash)
+ * so the ref is matched by a (?![\d:]) boundary (not end-anchored) and any
+ * trailing text after the reference is ignored.
+ *
  * Handles:
- *   "Mishna Yomi - Kerisus 5:8-6:1"   (cross-chapter)
- *   "Mishna Yomi - Kerisus 5:4-5"      (same chapter)
- *   "Mishna Yomi - Kerisus 5:4"        (single)
+ *   "Mishna Yomi - Kerisus 5:8-6:1 - ..."   (cross-chapter)
+ *   "Mishna Yomi - Kerisus 5:4-5 - ..."     (same chapter)
+ *   "Mishna Yomi - Kerisus 5:4 - ..."       (single)
  */
 export function parseMishnaTitle(title: string) {
   const nil = { tractate: null, chapterFrom: null, mishnaFrom: null, chapterTo: null, mishnaTo: null };
   const cleaned = title.replace(/^Mishna\s+Yomi\s*[-:]\s*/i, '').trim();
 
   // Cross-chapter: "Name X:Y-W:Z"
-  const cross = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+):(\d+)\s*$/);
+  const cross = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+):(\d+)(?![\d:])/);
   if (cross) return {
     tractate: normalizeTractate(cross[1].trim()),
     chapterFrom: +cross[2], mishnaFrom: +cross[3],
@@ -89,7 +99,7 @@ export function parseMishnaTitle(title: string) {
   };
 
   // Same chapter: "Name X:Y-Z"
-  const same = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+)\s*$/);
+  const same = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+)(?![\d:])/);
   if (same) return {
     tractate: normalizeTractate(same[1].trim()),
     chapterFrom: +same[2], mishnaFrom: +same[3],
@@ -97,7 +107,7 @@ export function parseMishnaTitle(title: string) {
   };
 
   // Single: "Name X:Y"
-  const single = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*$/);
+  const single = cleaned.match(/^(.+?)\s+(\d+):(\d+)(?![\d:])/);
   if (single) return {
     tractate: normalizeTractate(single[1].trim()),
     chapterFrom: +single[2], mishnaFrom: +single[3],

@@ -159,14 +159,15 @@ export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot,
               const p = SEDER_PALETTES[i];
               return (
                 <StaggerItem key={seder.name}>
-                  <div className="rounded-2xl p-5 text-center border transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-default"
+                  <Link href={`/browse?seder=${encodeURIComponent(seder.name)}`}
+                    className="block rounded-2xl p-5 text-center border transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                     style={{ background: p.bg, borderColor: p.border }}>
                     <span className="font-bold block mb-1.5 text-sm" style={{ color: p.text }}>{seder.name}</span>
                     <span className="text-xs block mb-3" style={{ color: 'var(--muted)' }}>{seder.tractates.length} tractates</span>
                     <div className="h-px my-2" style={{ background: p.border }} />
                     <span className="text-lg font-bold block mt-2" style={{ color: p.accent }}>{seder.totalMishnayot.toLocaleString()}</span>
                     <span className="text-xs" style={{ color: 'var(--muted)' }}>mishnayot</span>
-                  </div>
+                  </Link>
                 </StaggerItem>
               );
             })}
