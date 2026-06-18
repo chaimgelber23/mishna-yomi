@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 import { getTodaySummary } from '@/lib/calendar';
 import { buildDailyReminderEmail } from '@/lib/email/templates';
+import { fetchMishnayotText } from '@/lib/sefaria';
 import {
   CustomCycle,
   cycleDayNumber,
@@ -13,6 +14,11 @@ import {
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
+// Cap how many mishnayot we fetch+show inline in one email. The communal cycle
+// is always 2/day; this only bounds aggressive custom cycles (pace can be large)
+// so a single recipient can't fan out dozens of live Sefaria fetches.
+const MAX_EMAIL_MISHNAYOT = 4;
 
 export async function GET(request: NextRequest) {
   return POST(request);
@@ -75,6 +81,15 @@ export async function POST(request: NextRequest) {
     ? `${siteUrl}/learn?episode=${episode.id}`
     : `${siteUrl}/learn`;
 
+  // Hebrew + English text of today's communal mishnayot — fetched once (cached).
+  // Best-effort: a Sefaria hiccup must never block the daily send.
+  let communalTexts: { label: string; he: string; en: string }[] = [];
+  try {
+    communalTexts = await fetchMishnayotText(mishnayot);
+  } catch {
+    communalTexts = [];
+  }
+
   // Fetch all active subscribers, then filter by each subscriber's OWN timezone:
   // a subscriber is due when the current hour in their timezone matches their
   // chosen reminder hour. (Run this cron hourly.)
@@ -107,6 +122,7 @@ export async function POST(request: NextRequest) {
         completedCount: 0, // No auth-based progress for quick subscribers
         unsubscribeUrl,
         episodeDescription: episode?.description || undefined,
+        texts: communalTexts,
       });
 
       await resend.emails.send({
@@ -152,6 +168,7 @@ export async function POST(request: NextRequest) {
       let userTitle = episode?.title || label;
       let userListenUrl = listenUrl;
       let userDescription = episode?.description || undefined;
+      let userTexts = communalTexts;
 
       const { data: cycles } = await supabase
         .from('mishna_cycles')
@@ -171,6 +188,7 @@ export async function POST(request: NextRequest) {
             userTitle = `${cycle.name} — Day ${dayNum}: ${mishnaRangeLabel(refs)}`;
             userListenUrl = `${siteUrl}/cycles`;
             userDescription = undefined;
+            try { userTexts = await fetchMishnayotText(refs.slice(0, MAX_EMAIL_MISHNAYOT)); } catch { userTexts = []; }
           }
         }
       }
@@ -183,6 +201,7 @@ export async function POST(request: NextRequest) {
         completedCount: count || 0,
         unsubscribeUrl,
         episodeDescription: userDescription,
+        texts: userTexts,
       });
 
       await resend.emails.send({

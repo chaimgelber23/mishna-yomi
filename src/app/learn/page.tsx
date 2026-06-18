@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import AudioPlayer from '@/components/AudioPlayer';
 import EpisodeCard from '@/components/EpisodeCard';
+import MishnaText from '@/components/MishnaText';
 import {
   getTodaySummary,
 } from '@/lib/calendar';
@@ -311,6 +312,13 @@ export default function LearnPage() {
                   <Link href="/auth/login" className="hover:underline font-medium" style={{ color: 'var(--gold-dark)' }}>Sign in</Link> to save your progress and sync across devices.
                 </div>
               )}
+
+              {/* Read-along Mishna text (Hebrew + English) for this lesson */}
+              {currentEp.mishna_day_number != null ? (
+                <MishnaText day={currentEp.mishna_day_number} />
+              ) : currentEp.tractate && currentEp.chapter_from != null && currentEp.mishna_from != null ? (
+                <MishnaText single={{ tractate: currentEp.tractate, chapter: currentEp.chapter_from, mishna: currentEp.mishna_from }} />
+              ) : null}
 
               {/* Episode info */}
               <div className="card p-5">

@@ -4,6 +4,22 @@ import { mishnaRangeLabel } from '../cycle';
 /* Sefer email palette — parchment paper, warm ink, brass.
    Email-safe hex only (no CSS vars); Georgia / Times for serif. */
 
+/** The actual text of one mishna, for the read-in-email block. */
+export interface MishnaEmailText {
+  label: string;
+  he: string;
+  en: string;
+}
+
+/** Escape text before injecting it into the email HTML. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 interface DailyReminderData {
   recipientName?: string;
   mishnayot: MishnaReference[];
@@ -12,10 +28,12 @@ interface DailyReminderData {
   completedCount: number;
   unsubscribeUrl: string;
   episodeDescription?: string;
+  /** Hebrew + English text of today's mishnayot, shown inline in the email. */
+  texts?: MishnaEmailText[];
 }
 
 export function buildDailyReminderEmail(data: DailyReminderData): { subject: string; html: string; text: string } {
-  const { recipientName, mishnayot, episodeTitle, listenUrl, completedCount, unsubscribeUrl, episodeDescription } = data;
+  const { recipientName, mishnayot, episodeTitle, listenUrl, completedCount, unsubscribeUrl, episodeDescription, texts } = data;
   const label = mishnaRangeLabel(mishnayot);
   const greeting = recipientName ? `Shalom, ${recipientName}!` : 'Shalom!';
   const percentage = TOTAL_MISHNAYOT > 0 ? ((completedCount / TOTAL_MISHNAYOT) * 100).toFixed(1) : '0.0';
@@ -42,6 +60,13 @@ export function buildDailyReminderEmail(data: DailyReminderData): { subject: str
     .today-mishna { font-size: 28px; color: #221A10; font-weight: bold; margin-bottom: 6px; }
     .today-episode { font-size: 14px; color: #6F6049; margin-bottom: 24px; }
     .description { background: rgba(160,120,64,0.06); border-left: 3px solid #A07840; padding: 16px 20px; margin-bottom: 24px; font-size: 14px; line-height: 1.7; color: #4A3A24; font-style: italic; }
+    .text-section { background: #FFFDF8; padding: 28px 32px; border-bottom: 1px solid #E4D8C0; }
+    .text-section .sec-label { font-size: 11px; color: #856230; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 18px; }
+    .mishna-block { margin-bottom: 22px; }
+    .mishna-num { font-size: 12px; color: #856230; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .mishna-he { direction: rtl; text-align: right; font-family: 'Times New Roman', serif; font-size: 19px; line-height: 1.95; color: #221A10; margin-bottom: 10px; }
+    .mishna-en { font-size: 14px; line-height: 1.75; color: #4A3A24; }
+    .text-divider { border: 0; border-top: 1px solid #E4D8C0; margin: 0 0 22px; }
     .cta-button { display: block; background: linear-gradient(135deg, #2E2316, #1C160D); color: #F6EAD2 !important; text-decoration: none; padding: 16px 32px; border-radius: 9999px; font-size: 16px; font-weight: bold; text-align: center; letter-spacing: 0.5px; }
     .progress-section { background: #F4EAD6; padding: 24px 32px; border-bottom: 1px solid #E4D8C0; }
     .progress-label { font-size: 11px; color: #856230; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
@@ -74,6 +99,15 @@ export function buildDailyReminderEmail(data: DailyReminderData): { subject: str
       <a href="${listenUrl}" class="cta-button">&#9654;&nbsp; Listen Now</a>
     </div>
 
+    ${texts && texts.length ? `<div class="text-section">
+      <p class="sec-label">Today's Mishnayot</p>
+      ${texts.map((t, i) => `<div class="mishna-block">
+        <p class="mishna-num">${escapeHtml(t.label)}</p>
+        ${t.he ? `<div class="mishna-he" dir="rtl">${escapeHtml(t.he)}</div>` : ''}
+        ${t.en ? `<p class="mishna-en">${escapeHtml(t.en)}</p>` : ''}
+      </div>${i < texts.length - 1 ? '<hr class="text-divider" />' : ''}`).join('')}
+    </div>` : ''}
+
     <div class="progress-section">
       <p class="progress-label">Your Progress</p>
       <p class="progress-numbers"><span>${completedCount.toLocaleString()}</span> of ${TOTAL_MISHNAYOT.toLocaleString()} Mishnayot</p>
@@ -100,7 +134,10 @@ ${label}
 ${episodeTitle}
 
 ${episodeDescription ? episodeDescription.substring(0, 200) + '...\n\n' : ''}Listen Now: ${listenUrl}
-
+${texts && texts.length ? `
+TODAY'S MISHNAYOT
+${texts.map(t => `${t.label}\n${t.he}\n\n${t.en}`).join('\n\n----\n\n')}
+` : ''}
 YOUR PROGRESS
 ${completedCount.toLocaleString()} of ${TOTAL_MISHNAYOT.toLocaleString()} Mishnayot (${percentage}%)
 ${remaining.toLocaleString()} Mishnayot remaining

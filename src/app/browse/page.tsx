@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import MishnaText from '@/components/MishnaText';
 import {
   SEDARIM, SEDER_HEBREW, TRACTATE_HEBREW,
   type SederInfo, type TractateInfo,
@@ -44,6 +45,7 @@ export default function BrowsePage() {
   const [episodes, setEpisodes]                 = useState<EpisodeStub[]>([]);
   const [progress, setProgress]                 = useState<Record<string, boolean>>({});
   const [progressNotice, setProgressNotice]     = useState<'signed-out' | 'error' | null>(null);
+  const [openText, setOpenText]                 = useState<string | null>(null);
 
   // Deep-link: /browse?seder=Zeraim pre-selects that seder (from the homepage cards)
   useEffect(() => {
@@ -249,45 +251,62 @@ export default function BrowsePage() {
           const ep   = episodeForMishna(selectedChapter, m);
           const done = isCompleted(selectedTractate.tractate, selectedChapter, m);
           const label = `${selectedTractate.tractate} ${selectedChapter}:${m}`;
+          const textKey = `${selectedChapter}:${m}`;
+          const isOpen = openText === textKey;
           return (
-            <div key={m}
-              className="flex items-center justify-between p-4 rounded-xl border transition-all duration-200"
-              style={{
-                background: done ? 'rgba(6,95,70,0.04)' : 'rgba(255,255,255,0.7)',
-                borderColor: done ? 'rgba(6,95,70,0.18)' : 'var(--border)',
-              }}>
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 border"
-                  style={{
-                    background: done ? '#ECFDF5' : 'var(--bg)',
-                    borderColor: done ? 'rgba(6,95,70,0.25)' : 'var(--border)',
-                    color: done ? '#065F46' : 'var(--muted)',
-                  }}>
-                  {done
-                    ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                    : m}
-                </div>
-                <div>
-                  <div className="font-medium text-sm" style={{ color: 'var(--fg)' }}>{label}</div>
-                  <div className="text-xs" dir="rtl" style={{ color: 'var(--muted)', fontFamily: 'var(--font-hebrew)' }}>
-                    {TRACTATE_HEBREW[selectedTractate.tractate] ?? selectedTractate.tractate} {selectedChapter}:{m}
+            <div key={m}>
+              <div
+                className="flex items-center justify-between p-4 rounded-xl border transition-all duration-200"
+                style={{
+                  background: done ? 'rgba(6,95,70,0.04)' : 'rgba(255,255,255,0.7)',
+                  borderColor: done ? 'rgba(6,95,70,0.18)' : 'var(--border)',
+                }}>
+                <div className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 border"
+                    style={{
+                      background: done ? '#ECFDF5' : 'var(--bg)',
+                      borderColor: done ? 'rgba(6,95,70,0.25)' : 'var(--border)',
+                      color: done ? '#065F46' : 'var(--muted)',
+                    }}>
+                    {done
+                      ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                      : m}
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm" style={{ color: 'var(--fg)' }}>{label}</div>
+                    <div className="text-xs" dir="rtl" style={{ color: 'var(--muted)', fontFamily: 'var(--font-hebrew)' }}>
+                      {TRACTATE_HEBREW[selectedTractate.tractate] ?? selectedTractate.tractate} {selectedChapter}:{m}
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setOpenText(isOpen ? null : textKey)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 cursor-pointer hover:shadow-sm"
+                    style={{ background: isOpen ? pal.bg : 'var(--bg)', borderColor: pal.border, color: pal.accent }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    {isOpen ? 'Hide' : 'Read'}
+                  </button>
+                  {ep ? (
+                    <Link href={`/learn?episode=${ep.id}`}
+                      className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 cursor-pointer hover:shadow-sm"
+                      style={{ background: pal.light, borderColor: pal.border, color: pal.accent }}>
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      Listen
+                    </Link>
+                  ) : (
+                    <span className="text-xs px-3 py-1.5 rounded-full border" style={{ color: 'var(--muted)', borderColor: 'var(--border)' }}>
+                      Coming soon
+                    </span>
+                  )}
+                </div>
               </div>
-              <div>
-                {ep ? (
-                  <Link href={`/learn?episode=${ep.id}`}
-                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 cursor-pointer hover:shadow-sm"
-                    style={{ background: pal.light, borderColor: pal.border, color: pal.accent }}>
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    Listen
-                  </Link>
-                ) : (
-                  <span className="text-xs px-3 py-1.5 rounded-full border" style={{ color: 'var(--muted)', borderColor: 'var(--border)' }}>
-                    Coming soon
-                  </span>
-                )}
-              </div>
+              {isOpen && (
+                <div className="mt-2">
+                  <MishnaText single={{ tractate: selectedTractate.tractate, chapter: selectedChapter, mishna: m }} compact />
+                </div>
+              )}
             </div>
           );
         })}
