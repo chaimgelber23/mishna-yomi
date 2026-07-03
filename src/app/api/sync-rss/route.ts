@@ -4,6 +4,7 @@ import { fetchRSSFeed } from '@/lib/rss';
 import { getDayNumber } from '@/lib/calendar';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {

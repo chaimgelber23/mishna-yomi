@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { buildWelcomeEmail } from '@/lib/email/templates';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();

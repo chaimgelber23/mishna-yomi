@@ -3,6 +3,8 @@ import { fetchMishnayotText } from '@/lib/sefaria';
 import { getMishnayotForDay, TOTAL_CYCLE_DAYS } from '@/lib/calendar';
 import type { MishnaReference } from '@/lib/mishna-data';
 
+export const runtime = 'edge';
+
 /**
  * GET /api/mishna-text
  *

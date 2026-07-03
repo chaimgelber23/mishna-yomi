@@ -3,6 +3,7 @@ import { TOTAL_MISHNAYOT, MISHNA_STRUCTURE, SEDARIM } from '@/lib/mishna-data';
 import HomeAnimations from '@/components/HomeAnimations';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export default function HomePage() {
   const today = getTodaySummary();

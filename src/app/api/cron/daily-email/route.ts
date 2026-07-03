@@ -13,6 +13,7 @@ import {
 } from '@/lib/cycle';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 export const maxDuration = 60;
 
 // Cap how many mishnayot we fetch+show inline in one email. The communal cycle
