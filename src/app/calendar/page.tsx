@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   getDayNumber,
+  getDayNumberFromCalendarParts,
   getMishnayotForDay,
   getMishnaPairLabel,
   formatDateShort,
@@ -41,7 +42,11 @@ function buildMonthGrid(year: number, month: number): CalendarDay[] {
   // Pad start
   for (let i = 0; i < startPad; i++) {
     const d = new Date(Date.UTC(year, month, 1 - (startPad - i)));
-    const dayNum = getDayNumber(d);
+    const dayNum = getDayNumberFromCalendarParts(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate(),
+    );
     const mishnayot = getMishnayotForDay(dayNum);
     days.push({
       date: d,
@@ -55,7 +60,7 @@ function buildMonthGrid(year: number, month: number): CalendarDay[] {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(Date.UTC(year, month, d));
-    const dayNum = getDayNumber(date);
+    const dayNum = getDayNumberFromCalendarParts(year, month, d);
     const mishnayot = getMishnayotForDay(dayNum);
     const isToday = date.getTime() === todayUTC.getTime();
     days.push({
@@ -72,11 +77,14 @@ function buildMonthGrid(year: number, month: number): CalendarDay[] {
 }
 
 export default function CalendarPage() {
+  const [mounted, setMounted] = useState(false);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [searchDate, setSearchDate] = useState('');
+
+  useEffect(() => setMounted(true), []);
 
   const days = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
 
@@ -131,6 +139,27 @@ export default function CalendarPage() {
     }
     return list;
   }, []);
+
+  if (!mounted) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8" aria-busy="true">
+        <div className="mb-8">
+          <h1 className="text-2xl mb-1" style={{ fontFamily: 'var(--font-playfair)', color: 'var(--fg)' }}>
+            Mishna Yomit Calendar
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>Loading the daily calendar…</p>
+        </div>
+        <div className="card p-4 sm:p-6" role="status" aria-label="Loading calendar">
+          <div className="h-6 w-40 rounded bg-black/5 mb-6" />
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: 35 }, (_, i) => (
+              <div key={i} className="h-12 sm:h-16 rounded-lg bg-black/[0.03]" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">

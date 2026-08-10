@@ -11,16 +11,33 @@ export const CYCLE_START = new Date('2021-12-25T00:00:00.000Z');
 export const TOTAL_CYCLE_DAYS = DAY_TO_MISHNAYOT.length;
 
 /**
+ * Returns the cycle day for an explicit civil-calendar date.
+ *
+ * Passing calendar parts avoids timezone shifts when a Date was created at
+ * UTC midnight but is later read in a browser west of UTC.
+ */
+export function getDayNumberFromCalendarParts(
+  year: number,
+  zeroBasedMonth: number,
+  day: number,
+): number {
+  const utcDateMs = Date.UTC(year, zeroBasedMonth, day);
+  const diffMs = utcDateMs - CYCLE_START.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return 1;
+  return (diffDays % TOTAL_CYCLE_DAYS) + 1;
+}
+
+/**
  * Returns the 1-based sequential day number for a given date,
  * wrapping around if we're past the end of one cycle.
  */
 export function getDayNumber(date: Date): number {
-  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const diffMs = utcDate.getTime() - CYCLE_START.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return 1;
-  // Wrap around cycle
-  return (diffDays % TOTAL_CYCLE_DAYS) + 1;
+  return getDayNumberFromCalendarParts(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
 }
 
 /**
