@@ -1,142 +1,60 @@
-// Edge-compatible RSS parser — no Node.js dependencies
+// Edge-compatible RSS parser -- no Node.js dependencies.
 
-export interface ParsedEpisode {
+import {
+  parseMishnaTitle,
+  type ParsedMishnaTitle,
+} from './episode-mapping';
+
+export { normalizeTractate, parseMishnaTitle } from './episode-mapping';
+
+export interface ParsedEpisode extends ParsedMishnaTitle {
   guid: string;
   title: string;
   description: string | null;
   audioUrl: string;
   durationSeconds: number | null;
   publishedAt: Date;
-  tractate: string | null;
-  chapterFrom: number | null;
-  mishnaFrom: number | null;
-  chapterTo: number | null;
-  mishnaTo: number | null;
 }
 
 const RSS_URL = 'https://anchor.fm/s/efb348c8/podcast/rss';
 
-/** Normalize Ashkenazi/Yiddish tractate names → standard English names */
-const TRACTATE_MAP: Record<string, string> = {
-  // Seder Moed
-  'Shabbos':        'Shabbat',
-  // Seder Nashim
-  'Kesubos':        'Ketubot',
-  'Gitin':          'Gittin',
-  'Kidushin':       'Kiddushin',
-  // Seder Nezikin
-  'Bava Kama':      'Bava Kamma',
-  'Bava Basra':     'Bava Batra',
-  'Sanhedrin':      'Sanhedrin',
-  'Makos':          'Makkot',
-  'Shevuos':        'Shevuot',
-  'Eduyos':         'Eduyot',
-  'Avos':           'Avot',
-  'Horayos':        'Horayot',
-  // Seder Kodashim
-  'Menachos':       'Menachot',
-  'Chulin':         'Chullin',
-  'Bechoros':       'Bekhorot',
-  'Erchin':         'Arakhin',
-  'Kerisus':        'Keritot',
-  'Midos':          'Middot',
-  'Kinim':          'Kinnim',
-  // Seder Taharot
-  'Nida':           'Niddah',
-};
-
-export function normalizeTractate(name: string | null): string | null {
-  if (!name) return null;
-  // Strip any cross-tractate suffix like " 5:12 -Avos"
-  const clean = name.replace(/\s+\d+:\d+\s*-.*$/, '').trim();
-  return TRACTATE_MAP[clean] ?? clean;
-}
-
-/** Extract a single XML tag value */
 function tag(xml: string, name: string): string | null {
-  // Try CDATA first
-  const cdataRe = new RegExp(`<${name}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${name}>`, 'i');
-  const cdata = xml.match(cdataRe);
+  const cdataPattern = new RegExp(
+    `<${name}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${name}>`,
+    'i'
+  );
+  const cdata = xml.match(cdataPattern);
   if (cdata) return cdata[1].trim();
 
-  const re = new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, 'i');
-  const m = xml.match(re);
-  return m ? m[1].trim() : null;
+  const pattern = new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, 'i');
+  const match = xml.match(pattern);
+  return match ? match[1].trim() : null;
 }
 
-/** Extract an XML attribute value */
 function attr(xml: string, tagName: string, attrName: string): string | null {
-  const re = new RegExp(`<${tagName}[^>]+${attrName}="([^"]*)"`, 'i');
-  const m = xml.match(re);
-  return m ? m[1] : null;
+  const pattern = new RegExp(`<${tagName}[^>]+${attrName}="([^"]*)"`, 'i');
+  const match = xml.match(pattern);
+  return match ? match[1] : null;
 }
 
-/**
- * Parse episode title → tractate + mishna references.
- *
- * The feed appends a trailing credit/dedication to every title, e.g.
- *   "Mishna Yomi - Kelim 11:5-6 - By R' Shloimie Friedman"
- *   "Mishna Yomi - Kelim 3:5-6 - L'uli Nishmas Etta Ahuva bas Yaakov"
- *   "Mishna Yomi - Midos 2:2-3- By R' Shloimie Friedman"   (no space before dash)
- * so the ref is matched by a (?![\d:]) boundary (not end-anchored) and any
- * trailing text after the reference is ignored.
- *
- * Handles:
- *   "Mishna Yomi - Kerisus 5:8-6:1 - ..."   (cross-chapter)
- *   "Mishna Yomi - Kerisus 5:4-5 - ..."     (same chapter)
- *   "Mishna Yomi - Kerisus 5:4 - ..."       (single)
- */
-export function parseMishnaTitle(title: string) {
-  const nil = { tractate: null, chapterFrom: null, mishnaFrom: null, chapterTo: null, mishnaTo: null };
-  const cleaned = title.replace(/^Mishna\s+Yomi\s*[-:]\s*/i, '').trim();
+function parseDuration(value: string | null): number | null {
+  if (!value) return null;
+  if (/^\d+$/.test(value)) return Number(value);
 
-  // Cross-chapter: "Name X:Y-W:Z"
-  const cross = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+):(\d+)(?![\d:])/);
-  if (cross) return {
-    tractate: normalizeTractate(cross[1].trim()),
-    chapterFrom: +cross[2], mishnaFrom: +cross[3],
-    chapterTo:   +cross[4], mishnaTo:   +cross[5],
-  };
-
-  // Same chapter: "Name X:Y-Z"
-  const same = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+)(?![\d:])/);
-  if (same) return {
-    tractate: normalizeTractate(same[1].trim()),
-    chapterFrom: +same[2], mishnaFrom: +same[3],
-    chapterTo:   +same[2], mishnaTo:   +same[4],
-  };
-
-  // Single: "Name X:Y"
-  const single = cleaned.match(/^(.+?)\s+(\d+):(\d+)(?![\d:])/);
-  if (single) return {
-    tractate: normalizeTractate(single[1].trim()),
-    chapterFrom: +single[2], mishnaFrom: +single[3],
-    chapterTo:   +single[2], mishnaTo:   +single[3],
-  };
-
-  return nil;
-}
-
-/** Parse iTunes duration string → seconds */
-function parseDuration(d: string | null): number | null {
-  if (!d) return null;
-  if (/^\d+$/.test(d)) return +d;
-  const parts = d.split(':').map(Number);
+  const parts = value.split(':').map(Number);
+  if (parts.some(Number.isNaN)) return null;
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   return null;
 }
 
-/** Fetch and parse the Mishna Yomi RSS feed using native fetch */
 export async function fetchRSSFeed(): Promise<ParsedEpisode[]> {
-  const res = await fetch(RSS_URL, {
+  const response = await fetch(RSS_URL, {
     headers: { 'User-Agent': 'MishnaYomi/1.0 RSS reader' },
   });
 
-  if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
-  const xml = await res.text();
-
-  // Split into <item> blocks
+  if (!response.ok) throw new Error(`RSS fetch failed: ${response.status}`);
+  const xml = await response.text();
   const itemBlocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? [];
   const episodes: ParsedEpisode[] = [];
 
@@ -144,19 +62,19 @@ export async function fetchRSSFeed(): Promise<ParsedEpisode[]> {
     const audioUrl = attr(block, 'enclosure', 'url');
     if (!audioUrl) continue;
 
-    const title       = tag(block, 'title') ?? 'Untitled';
-    const guid        = tag(block, 'guid') ?? audioUrl;
+    const title = tag(block, 'title') ?? 'Untitled';
+    const guid = tag(block, 'guid') ?? audioUrl;
     const description = tag(block, 'description') ?? tag(block, 'itunes:summary') ?? null;
-    const durationRaw = tag(block, 'itunes:duration');
-    const pubDate     = tag(block, 'pubDate') ?? tag(block, 'dc:date');
-    const publishedAt = pubDate ? new Date(pubDate) : new Date();
+    const duration = tag(block, 'itunes:duration');
+    const publication = tag(block, 'pubDate') ?? tag(block, 'dc:date');
+    const publishedAt = publication ? new Date(publication) : new Date();
 
     episodes.push({
       guid,
       title,
       description,
       audioUrl,
-      durationSeconds: parseDuration(durationRaw),
+      durationSeconds: parseDuration(duration),
       publishedAt,
       ...parseMishnaTitle(title),
     });
@@ -165,11 +83,12 @@ export async function fetchRSSFeed(): Promise<ParsedEpisode[]> {
   return episodes.sort((a, b) => a.publishedAt.getTime() - b.publishedAt.getTime());
 }
 
-/** Format seconds → M:SS or H:MM:SS */
 export function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  }
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
 }

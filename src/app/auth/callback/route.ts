@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
 
   if (authErrorCode) {
     const reason = authErrorCode === 'otp_expired' ? 'link_expired' : 'callback_failed';
-    return redirectWithoutCaching(`${origin}/auth/login?error=${reason}`);
+    return redirectWithoutCaching(
+      `${origin}/auth/login?error=${reason}&next=${encodeURIComponent(next)}`
+    );
   }
 
   if (code) {
@@ -33,5 +35,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return redirectWithoutCaching(`${origin}/auth/login?error=callback_failed`);
+  return redirectWithoutCaching(
+    `${origin}/auth/login?error=callback_failed&next=${encodeURIComponent(next)}`
+  );
 }

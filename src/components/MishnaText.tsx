@@ -6,6 +6,8 @@ import type { MishnaText as MishnaTextData } from '@/lib/sefaria';
 type Lang = 'he' | 'en' | 'both';
 
 interface MishnaTextProps {
+  /** Exact 1-based canonical Mishnah indices, used by mapped audio lessons. */
+  indices?: number[];
   /** Cycle day number — fetches that day's 2 mishnayot. */
   day?: number;
   /** A single mishna (used by the browse view). */
@@ -19,6 +21,7 @@ interface MishnaTextProps {
 const LANG_KEY = 'mishna-text-lang';
 
 function buildQuery(props: MishnaTextProps): string | null {
+  if (props.indices?.length) return `indices=${props.indices.join(',')}`;
   if (props.day != null) return `day=${props.day}`;
   if (props.single) {
     const { tractate, chapter, mishna } = props.single;
@@ -27,12 +30,12 @@ function buildQuery(props: MishnaTextProps): string | null {
   return null;
 }
 
-export default function MishnaText({ day, single, defaultLang = 'both', compact = false }: MishnaTextProps) {
+export default function MishnaText({ indices, day, single, defaultLang = 'both', compact = false }: MishnaTextProps) {
   const [lang, setLang] = useState<Lang>(defaultLang);
   const [data, setData] = useState<MishnaTextData[] | null>(null);
   const [error, setError] = useState(false);
 
-  const query = buildQuery({ day, single });
+  const query = buildQuery({ indices, day, single });
 
   // Restore the reader's language preference.
   useEffect(() => {

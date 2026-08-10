@@ -36,6 +36,8 @@ export default function CyclesPage() {
   const [doneDays, setDoneDays]       = useState<Set<number>>(new Set());
   const [error, setError]             = useState('');
   const [busy, setBusy]               = useState(false);
+  const [pendingDays, setPendingDays] = useState<Set<number>>(new Set());
+  const [cycleSaveError, setCycleSaveError] = useState('');
 
   // Wizard state
   const [startChoice, setStartChoice] = useState<'beginning' | 'tractate'>('beginning');
@@ -121,28 +123,39 @@ export default function CyclesPage() {
   }
 
   async function setDayDone(dayNumber: number, done: boolean) {
-    if (!cycle) return;
+    if (!cycle || pendingDays.has(dayNumber)) return;
     const supabase = getSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const wasDone = doneDays.has(dayNumber);
+    if (wasDone === done) return;
 
-    // Optimistic update
+    setCycleSaveError('');
+    setPendingDays(current => new Set(current).add(dayNumber));
     setDoneDays(prev => {
       const next = new Set(prev);
       if (done) next.add(dayNumber); else next.delete(dayNumber);
       return next;
     });
 
-    if (done) {
-      await supabase.from('mishna_cycle_progress').upsert(
-        { cycle_id: cycle.id, user_id: user.id, day_number: dayNumber },
-        { onConflict: 'cycle_id,day_number' }
-      );
-    } else {
-      await supabase.from('mishna_cycle_progress')
-        .delete()
-        .eq('cycle_id', cycle.id)
-        .eq('day_number', dayNumber);
+    try {
+      const { error: saveError } = await supabase.rpc('set_mishna_cycle_day_complete', {
+        p_cycle_id: cycle.id,
+        p_day_number: dayNumber,
+        p_completed: done,
+      });
+      if (saveError) throw saveError;
+    } catch {
+      setDoneDays(prev => {
+        const next = new Set(prev);
+        if (wasDone) next.add(dayNumber); else next.delete(dayNumber);
+        return next;
+      });
+      setCycleSaveError(`We couldn't save Day ${dayNumber}. Your previous progress is still shown; please try again.`);
+    } finally {
+      setPendingDays(current => {
+        const next = new Set(current);
+        next.delete(dayNumber);
+        return next;
+      });
     }
   }
 
@@ -422,7 +435,17 @@ export default function CyclesPage() {
               You&apos;re about {behind} day{behind === 1 ? '' : 's'} behind — the earlier days below are waiting for you.
             </p>
           )}
+          <p className="mt-3 text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
+            Completed cycle days update your overall Mishnah progress. Learning already saved through audio or self-study is counted only once.
+          </p>
         </div>
+
+        {cycleSaveError && (
+          <div role="alert" className="rounded-xl border px-4 py-3 text-sm"
+            style={{ background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+            {cycleSaveError}
+          </div>
+        )}
 
         {/* Today */}
         <div className="rounded-2xl p-6 sm:p-8 border" style={card}>
@@ -445,12 +468,15 @@ export default function CyclesPage() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => setDayDone(todayNum, !doneDays.has(todayNum))}
-                className="py-3 px-7 rounded-full font-bold text-sm cursor-pointer transition-all border-2"
+              <button type="button" onClick={() => void setDayDone(todayNum, !doneDays.has(todayNum))}
+                disabled={pendingDays.has(todayNum)}
+                aria-busy={pendingDays.has(todayNum)}
+                aria-label={doneDays.has(todayNum) ? `Remove Day ${todayNum} completion` : `Mark Day ${todayNum} complete`}
+                className="min-h-11 py-3 px-7 rounded-full font-bold text-sm cursor-pointer transition-all border-2 disabled:cursor-wait disabled:opacity-65"
                 style={doneDays.has(todayNum)
                   ? { background: '#ECFDF5', borderColor: 'rgba(6,95,70,0.3)', color: '#065F46' }
                   : { background: 'linear-gradient(135deg, var(--navy), #3D2E1A)', borderColor: 'transparent', color: '#fff', boxShadow: '0 4px 16px rgba(34,26,16,0.3)' }}>
-                {doneDays.has(todayNum) ? '✓ Done for today' : 'Mark today done'}
+                {pendingDays.has(todayNum) ? 'Saving…' : doneDays.has(todayNum) ? '✓ Done for today' : 'Mark today done'}
               </button>
             </>
           ) : (
@@ -474,15 +500,17 @@ export default function CyclesPage() {
                 return (
                   <ul className="space-y-2">
                     {missed.map(d => (
-                      <li key={d} className="flex items-center justify-between gap-3 text-sm">
+                      <li key={d} className="flex flex-col items-stretch gap-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <span style={{ color: 'var(--fg)' }}>
                           <span className="font-medium">Day {d}:</span>{' '}
                           <span style={{ color: 'var(--muted)' }}>{mishnaRangeLabel(mishnayotForCycleDay(cycle, d))}</span>
                         </span>
-                        <button onClick={() => setDayDone(d, true)}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer flex-shrink-0"
+                        <button type="button" onClick={() => void setDayDone(d, true)}
+                          disabled={pendingDays.has(d)} aria-busy={pendingDays.has(d)}
+                          aria-label={`Mark Day ${d} complete: ${mishnaRangeLabel(mishnayotForCycleDay(cycle, d))}`}
+                          className="min-h-11 self-end text-xs font-semibold px-3 py-1.5 rounded-full border cursor-pointer flex-shrink-0 disabled:cursor-wait disabled:opacity-65 sm:self-auto"
                           style={{ color: 'var(--navy)', borderColor: 'var(--border)' }}>
-                          Mark done
+                          {pendingDays.has(d) ? 'Saving…' : 'Mark done'}
                         </button>
                       </li>
                     ))}

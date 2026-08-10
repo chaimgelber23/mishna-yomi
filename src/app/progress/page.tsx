@@ -1,22 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
 import ProgressBar from '@/components/ProgressBar';
 import TractateCard from '@/components/TractateCard';
-import { SEDARIM, MISHNA_STRUCTURE, TOTAL_MISHNAYOT, SEDER_HEBREW } from '@/lib/mishna-data';
-import { projectCompletionDate, formatDate } from '@/lib/calendar';
+import { ALL_MISHNAYOT, SEDARIM, MISHNA_STRUCTURE, TOTAL_MISHNAYOT, SEDER_HEBREW, type MishnaReference } from '@/lib/mishna-data';
 import Link from 'next/link';
 
-interface ProgressData {
-  episode_id: string;
-  completed: boolean;
-  mishna_episodes: {
-    tractate: string | null;
-    chapter_from: number | null;
-    mishna_from: number | null;
-    mishna_day_number: number | null;
-  } | null;
+interface MishnaProgressData {
+  global_index: number;
+  listened_at: string | null;
+  self_studied_at: string | null;
+  cycle_completed_at: string | null;
+  learned_at: string | null;
 }
 
 // Map tractate → completed count
@@ -35,91 +30,69 @@ export default function ProgressPage() {
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [tractateProgress, setTractateProgress] = useState<TractateProgress>({});
   const [completedCount, setCompletedCount] = useState(0);
-  const [currentTractate, setCurrentTractate] = useState('');
+  const [nextMishna, setNextMishna] = useState<MishnaReference | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSeders, setExpandedSeders] = useState<Set<string>>(new Set(['Zeraim', 'Moed']));
 
-  const supabaseRef = useRef<SupabaseClient | null>(null);
-  function getSupabase(): SupabaseClient {
-    if (!supabaseRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { createClient } = require('@/lib/supabase/client');
-      supabaseRef.current = createClient();
-    }
-    return supabaseRef.current!;
-  }
-
   useEffect(() => {
     async function load() {
-      const supabase = getSupabase();
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-
-      if (!user) {
+      const response = await fetch('/api/progress');
+      if (response.status === 401) {
+        setUser(null);
         setTractateProgress(SAMPLE_PROGRESS);
         setCompletedCount(Object.values(SAMPLE_PROGRESS).reduce((sum, v) => sum + v.completed, 0));
         setLoading(false);
         return;
       }
 
-      // Load progress
-      const { data } = await supabase
-        .from('mishna_progress')
-        .select(`
-          episode_id, completed,
-          mishna_episodes ( tractate, chapter_from, mishna_from, mishna_day_number )
-        `)
-        .eq('user_id', user.id);
-
-      if (data) {
+      if (response.ok) {
+        const data = await response.json() as { mishnaProgress?: MishnaProgressData[] };
+        setUser({ id: 'signed-in' });
         const map: TractateProgress = {};
-        let total = 0;
-        let latestDayNumber = 0;
-        let latestTractate = '';
-        let latestChapter = 0;
-        let latestMishna = 0;
+        const learnedIndices = new Set<number>();
 
-        for (const row of (data as unknown as ProgressData[])) {
-          const ep = row.mishna_episodes;
-          if (!ep?.tractate) continue;
-
-          const t = ep.tractate;
+        for (const row of data.mishnaProgress ?? []) {
+          const ref = ALL_MISHNAYOT[row.global_index - 1];
+          if (!ref) continue;
+          learnedIndices.add(row.global_index);
+          const t = ref.tractate;
           if (!map[t]) map[t] = { completed: 0, inProgress: false };
-
-          if (row.completed) {
-            map[t].completed++;
-            total++;
-            if ((ep.mishna_day_number || 0) > latestDayNumber) {
-              latestDayNumber = ep.mishna_day_number || 0;
-              latestTractate = t;
-              latestChapter = ep.chapter_from || 0;
-              latestMishna = ep.mishna_from || 0;
-            }
-          } else if ((ep.mishna_day_number || 0) > 0) {
-            map[t].inProgress = true;
-          }
+          map[t].completed++;
+          map[t].inProgress = true;
         }
 
-        setTractateProgress(map);
-        setCompletedCount(total);
-        setCurrentTractate(latestTractate);
-        if (latestTractate) {
-          map[latestTractate] = {
-            ...(map[latestTractate] || { completed: 0, inProgress: false }),
+        const next = ALL_MISHNAYOT.find(ref => !learnedIndices.has(ref.globalIndex)) ?? null;
+        if (next) {
+          map[next.tractate] = {
+            ...(map[next.tractate] || { completed: 0, inProgress: false }),
             inProgress: true,
-            currentChapter: latestChapter,
-            currentMishna: latestMishna,
+            currentChapter: next.chapter,
+            currentMishna: next.mishna,
           };
         }
+        setTractateProgress(map);
+        setCompletedCount(learnedIndices.size);
+        setNextMishna(next);
+      } else {
+        setUser({ id: 'signed-in' });
+        setTractateProgress({});
+        setCompletedCount(0);
       }
 
       setLoading(false);
     }
-    load();
+    load().catch(() => {
+      setUser(null);
+      setTractateProgress(SAMPLE_PROGRESS);
+      setCompletedCount(Object.values(SAMPLE_PROGRESS).reduce((sum, value) => sum + value.completed, 0));
+      setLoading(false);
+    });
   }, []);
 
   const overallPct = TOTAL_MISHNAYOT > 0 ? (completedCount / TOTAL_MISHNAYOT) * 100 : 0;
-  const projectedDate = projectCompletionDate(completedCount);
+  const continueHref = nextMishna
+    ? `/browse?seder=${encodeURIComponent(nextMishna.seder)}&tractate=${encodeURIComponent(nextMishna.tractate)}&chapter=${nextMishna.chapter}&mishna=${nextMishna.mishna}`
+    : '/browse';
 
   function toggleSeder(name: string) {
     setExpandedSeders(prev => {
@@ -189,19 +162,16 @@ export default function ProgressPage() {
           </div>
 
           <div className="space-y-1 text-right">
-            {currentTractate && (
+            {nextMishna && (
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                Currently in:{' '}
-                <span className="font-medium" style={{ color: 'var(--gold-dark)' }}>{currentTractate}</span>
+                Next unlearned:{' '}
+                <span className="font-medium" style={{ color: 'var(--gold-dark)' }}>
+                  {nextMishna.tractate} {nextMishna.chapter}:{nextMishna.mishna}
+                </span>
               </p>
             )}
-            {projectedDate && (
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                Projected finish: <span style={{ color: 'var(--fg)' }}>{formatDate(projectedDate)}</span>
-              </p>
-            )}
-            <Link href="/learn" className="text-xs hover:underline block" style={{ color: 'var(--gold-dark)' }}>
-              Continue learning →
+            <Link href={continueHref} className="text-xs hover:underline block" style={{ color: 'var(--gold-dark)' }}>
+              Continue where I&apos;m holding →
             </Link>
           </div>
         </div>
@@ -293,7 +263,7 @@ export default function ProgressPage() {
                           key={t.tractate}
                           tractate={t}
                           completedCount={prog.completed}
-                          isCurrentTractate={t.tractate === currentTractate}
+                          isCurrentTractate={t.tractate === nextMishna?.tractate}
                           currentChapter={prog.currentChapter}
                           currentMishna={prog.currentMishna}
                         />
@@ -309,8 +279,8 @@ export default function ProgressPage() {
 
       {/* Bottom CTA */}
       <div className="text-center mt-12 py-8 border-t" style={{ borderColor: 'var(--border)' }}>
-        <Link href="/learn" className="btn-gold px-8 py-4 rounded-xl text-base inline-block">
-          Continue Learning →
+        <Link href={continueHref} className="btn-gold px-8 py-4 rounded-xl text-base inline-block">
+          Continue Where I&apos;m Holding →
         </Link>
       </div>
     </div>

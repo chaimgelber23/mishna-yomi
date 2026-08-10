@@ -5,6 +5,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import AudioPlayer from '@/components/AudioPlayer';
 import EpisodeCard from '@/components/EpisodeCard';
 import MishnaText from '@/components/MishnaText';
+import { ALL_MISHNAYOT, TOTAL_MISHNAYOT, type MishnaReference } from '@/lib/mishna-data';
+import { mishnaRangeLabel } from '@/lib/cycle';
 import {
   getTodaySummary,
 } from '@/lib/calendar';
@@ -22,6 +24,7 @@ interface Episode {
   chapter_to: number | null;
   mishna_to: number | null;
   mishna_day_number: number | null;
+  mishna_episode_units: { global_index: number; sequence: number }[];
 }
 
 interface ProgressMap {
@@ -31,9 +34,46 @@ interface ProgressMap {
   };
 }
 
+interface MishnaProgressEntry {
+  global_index: number;
+  listened_at: string | null;
+  self_studied_at: string | null;
+  cycle_completed_at: string | null;
+  learned_at: string | null;
+  learned_by_listening: boolean;
+  learned_by_self_study: boolean;
+  learned_by_cycle: boolean;
+  learned: boolean;
+}
+
+function episodeUnits(episode: Episode): { global_index: number; sequence: number }[] {
+  return [...(episode.mishna_episode_units ?? [])].sort((a, b) => a.sequence - b.sequence);
+}
+
+function episodeRefs(episode: Episode): MishnaReference[] {
+  return episodeUnits(episode)
+    .map(unit => ALL_MISHNAYOT[unit.global_index - 1])
+    .filter((ref): ref is MishnaReference => Boolean(ref));
+}
+
+function episodeBelongsToLesson(episode: Episode, globalIndices: ReadonlySet<number>): boolean {
+  const units = episodeUnits(episode);
+  return units.length > 0 && units.every(unit => globalIndices.has(unit.global_index));
+}
+
+function learnedSources(progress: MishnaProgressEntry | undefined): string[] {
+  if (!progress) return [];
+  const sources: string[] = [];
+  if (progress.listened_at) sources.push('Listening');
+  if (progress.self_studied_at) sources.push('Self-study');
+  if (progress.cycle_completed_at) sources.push('My Cycle');
+  return sources;
+}
+
 export default function LearnPage() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [progress, setProgress] = useState<ProgressMap>({});
+  const [mishnaProgress, setMishnaProgress] = useState<Record<number, MishnaProgressEntry>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
@@ -55,6 +95,7 @@ export default function LearnPage() {
   }
 
   const today = getTodaySummary();
+  const todayGlobalIndices = new Set(today.mishnayot.map(ref => ref.globalIndex));
 
   // Load user + episodes + progress
   useEffect(() => {
@@ -67,13 +108,14 @@ export default function LearnPage() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
-      // Get episodes
-      const { data: eps } = await supabase
-        .from('mishna_episodes')
-        .select('*')
-        .order('published_at', { ascending: true });
+      // Get episodes with their exact canonical Mishnah mappings.
+      const episodesResponse = await fetch('/api/episodes');
+      const episodesPayload = episodesResponse.ok
+        ? await episodesResponse.json() as { episodes?: Episode[] }
+        : { episodes: [] as Episode[] };
+      const eps = episodesPayload.episodes ?? [];
 
-      if (eps) {
+      if (eps.length) {
         setEpisodes(eps);
 
         // A Browse "Listen" link names the exact episode to open. Honor that
@@ -82,24 +124,30 @@ export default function LearnPage() {
         const requestedIdx = requestedEpisodeId
           ? eps.findIndex(e => e.id === requestedEpisodeId)
           : -1;
-        const todayIdx = eps.findIndex(e => e.mishna_day_number === today.dayNumber);
+        const todayIdx = eps.findIndex(e => episodeBelongsToLesson(e, todayGlobalIndices));
         const fallbackIdx = todayIdx >= 0 ? todayIdx : Math.max(0, eps.length - 1);
         setCurrentIdx(requestedIdx >= 0 ? requestedIdx : fallbackIdx);
       }
 
       // Get progress if logged in
       if (user) {
-        const { data: prog } = await getSupabase()
-          .from('mishna_progress')
-          .select('episode_id, completed, position_seconds')
-          .eq('user_id', user.id);
-
-        if (prog) {
+        const progressResponse = await fetch('/api/progress');
+        if (progressResponse.ok) {
+          const payload = await progressResponse.json() as {
+            episodeProgress?: { episode_id: string; completed: boolean; position_seconds: number }[];
+            mishnaProgress?: MishnaProgressEntry[];
+          };
           const map: ProgressMap = {};
-          for (const p of prog) {
+          for (const p of payload.episodeProgress ?? []) {
             map[p.episode_id] = { completed: p.completed, positionSeconds: p.position_seconds };
           }
           setProgress(map);
+
+          const mishnaMap: Record<number, MishnaProgressEntry> = {};
+          for (const p of payload.mishnaProgress ?? []) mishnaMap[p.global_index] = p;
+          setMishnaProgress(mishnaMap);
+        } else {
+          setProgressError('We could not load your saved progress. Please refresh and try again.');
         }
       }
 
@@ -108,11 +156,12 @@ export default function LearnPage() {
     load();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Find first uncompleted episode (for resume)
+  // Find the first lesson containing a Mishnah the user has not learned by any source.
   function getResumeIdx(): number {
     for (let i = 0; i < episodes.length; i++) {
-      const p = progress[episodes[i].id];
-      if (!p?.completed) return i;
+      const units = episodeUnits(episodes[i]);
+      if (units.length && units.some(unit => !mishnaProgress[unit.global_index])) return i;
+      if (!units.length && !progress[episodes[i].id]?.completed) return i;
     }
     return 0;
   }
@@ -123,8 +172,33 @@ export default function LearnPage() {
     document.getElementById('player')?.scrollIntoView({ behavior: 'smooth' });
   }
 
-  const saveProgress = useCallback(async (episodeId: string, completed: boolean, positionSeconds: number): Promise<boolean> => {
-    if (!user) return true;
+  const reloadProgress = useCallback(async (): Promise<number> => {
+    if (!user) return 0;
+    const response = await fetch('/api/progress');
+    if (!response.ok) throw new Error('progress_refresh_failed');
+    const payload = await response.json() as {
+      episodeProgress?: { episode_id: string; completed: boolean; position_seconds: number }[];
+      mishnaProgress?: MishnaProgressEntry[];
+    };
+    const episodeMap: ProgressMap = {};
+    for (const row of payload.episodeProgress ?? []) {
+      episodeMap[row.episode_id] = { completed: row.completed, positionSeconds: row.position_seconds };
+    }
+    setProgress(episodeMap);
+    const unitMap: Record<number, MishnaProgressEntry> = {};
+    for (const row of payload.mishnaProgress ?? []) unitMap[row.global_index] = row;
+    setMishnaProgress(unitMap);
+    return Object.keys(unitMap).length;
+  }, [user]);
+
+  const writeProgress = useCallback(async (
+    episodeId: string,
+    body: { positionSeconds: number } | { completed: boolean },
+  ): Promise<boolean> => {
+    if (!user) {
+      if ('completed' in body) setProgressError('Sign in to save this lesson as listened.');
+      return !('completed' in body);
+    }
 
     const previousWrite = progressWriteQueue.current.get(episodeId) ?? Promise.resolve();
     const write = previousWrite.then(async () => {
@@ -132,7 +206,7 @@ export default function LearnPage() {
         const response = await fetch('/api/progress', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ episodeId, completed, positionSeconds }),
+          body: JSON.stringify({ episodeId, ...body }),
         });
 
         if (!response.ok) {
@@ -142,10 +216,17 @@ export default function LearnPage() {
           return false;
         }
 
-        setProgress(prev => ({
-          ...prev,
-          [episodeId]: { completed, positionSeconds },
-        }));
+        if ('positionSeconds' in body) {
+          setProgress(prev => ({
+            ...prev,
+            [episodeId]: {
+              completed: prev[episodeId]?.completed ?? false,
+              positionSeconds: body.positionSeconds,
+            },
+          }));
+        } else {
+          await reloadProgress();
+        }
         setProgressError(null);
         return true;
       } catch {
@@ -163,33 +244,46 @@ export default function LearnPage() {
     });
 
     return write;
-  }, [user]);
+  }, [reloadProgress, user]);
 
-  async function handleComplete(positionSeconds: number): Promise<boolean> {
+  async function handleComplete(_positionSeconds: number): Promise<boolean> {
     const ep = episodes[currentIdx];
     if (!ep) return false;
-    const saved = await saveProgress(ep.id, true, ep.duration_seconds || positionSeconds);
+    const saved = await writeProgress(ep.id, { completed: true });
     if (!saved) return false;
 
-    // Check if all done
-    const completedIds = new Set(Object.entries(progress).filter(([, v]) => v.completed).map(([k]) => k));
-    completedIds.add(ep.id);
-    if (completedIds.size >= episodes.length && episodes.length > 0) {
+    const newlyLearned = episodeUnits(ep).filter(unit => !mishnaProgress[unit.global_index]).length;
+    if (Object.keys(mishnaProgress).length + newlyLearned >= TOTAL_MISHNAYOT) {
       setCelebrateComplete(true);
     }
     return true;
   }
 
+  async function handleRemoveComplete(): Promise<boolean> {
+    const ep = episodes[currentIdx];
+    if (!ep) return false;
+    return writeProgress(ep.id, { completed: false });
+  }
+
   async function handlePositionChange(seconds: number) {
     const ep = episodes[currentIdx];
     if (!ep) return;
-    // Debounced save
-    await saveProgress(ep.id, progress[ep.id]?.completed || false, seconds);
+    await writeProgress(ep.id, { positionSeconds: seconds });
   }
 
   const currentEp = episodes[currentIdx];
-  const completedCount = Object.values(progress).filter(p => p.completed).length;
-  const totalEpisodes = episodes.length;
+  const completedCount = Object.keys(mishnaProgress).length;
+  const currentUnits = currentEp ? episodeUnits(currentEp) : [];
+  const currentRefs = currentEp ? episodeRefs(currentEp) : [];
+
+  function learnedCountForEpisode(episode: Episode): number {
+    return episodeUnits(episode).filter(unit => Boolean(mishnaProgress[unit.global_index])).length;
+  }
+
+  function referenceLabelForEpisode(episode: Episode): string {
+    const refs = episodeRefs(episode);
+    return refs.length ? mishnaRangeLabel(refs) : episode.title;
+  }
 
   useEffect(() => { setProgressError(null); }, [currentEp?.id]);
 
@@ -198,7 +292,7 @@ export default function LearnPage() {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return ep.title.toLowerCase().includes(q) ||
-           (ep.tractate || '').toLowerCase().includes(q);
+           referenceLabelForEpisode(ep).toLowerCase().includes(q);
   });
 
   const displayedEpisodes = showAllEpisodes ? filteredEpisodes : filteredEpisodes.slice(0, 20);
@@ -241,7 +335,7 @@ export default function LearnPage() {
             You have completed the entire Mishnah!
           </p>
           <p className="mb-8" style={{ color: 'var(--muted)' }}>
-            All {totalEpisodes.toLocaleString()} lessons · {completedCount.toLocaleString()} Mishnayot complete
+            All {TOTAL_MISHNAYOT.toLocaleString()} Mishnayot learned
           </p>
           <button
             onClick={() => { setCelebrateComplete(false); setCurrentIdx(0); }}
@@ -272,15 +366,15 @@ export default function LearnPage() {
           {user && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm font-medium" style={{ color: 'var(--fg)' }}>{completedCount} / {totalEpisodes} complete</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--fg)' }}>{completedCount} / {TOTAL_MISHNAYOT} learned</p>
                 <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {totalEpisodes > 0 ? ((completedCount / totalEpisodes) * 100).toFixed(1) : '0.0'}%
+                  {((completedCount / TOTAL_MISHNAYOT) * 100).toFixed(1)}%
                 </p>
               </div>
               <div className="w-24 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
                 <div
                   className="h-2 bg-gradient-to-r from-gold-700 to-gold-400 rounded-full transition-all"
-                  style={{ width: `${totalEpisodes > 0 ? (completedCount / totalEpisodes) * 100 : 0}%` }}
+                  style={{ width: `${(completedCount / TOTAL_MISHNAYOT) * 100}%` }}
                 />
               </div>
             </div>
@@ -323,8 +417,10 @@ export default function LearnPage() {
                   mishnaFrom: currentEp.mishna_from,
                   chapterTo: currentEp.chapter_to,
                   mishnaTo: currentEp.mishna_to,
+                  referenceLabel: referenceLabelForEpisode(currentEp),
                 }}
                 onComplete={handleComplete}
+                onRemoveComplete={handleRemoveComplete}
                 onPositionChange={handlePositionChange}
                 onPrev={() => setCurrentIdx(i => Math.max(0, i - 1))}
                 onNext={() => setCurrentIdx(i => Math.min(episodes.length - 1, i + 1))}
@@ -334,6 +430,37 @@ export default function LearnPage() {
                 initialCompleted={progress[currentEp.id]?.completed || false}
                 key={currentEp.id}
               />
+
+              {currentUnits.length > 0 && (
+                <section className="card p-4 sm:p-5" aria-labelledby="this-lesson-heading">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h2 id="this-lesson-heading" className="text-sm font-semibold" style={{ color: 'var(--fg)' }}>
+                      This lesson
+                    </h2>
+                    <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
+                      {learnedCountForEpisode(currentEp)}/{currentUnits.length} learned
+                    </span>
+                  </div>
+                  <ul className="space-y-2">
+                    {currentUnits.map(unit => {
+                      const ref = ALL_MISHNAYOT[unit.global_index - 1];
+                      const sources = learnedSources(mishnaProgress[unit.global_index]);
+                      if (!ref) return null;
+                      return (
+                        <li key={unit.global_index} className="flex min-h-11 items-center justify-between gap-3 rounded-xl border px-3 py-2"
+                          style={{ borderColor: sources.length ? '#A7F3D0' : 'var(--border)', background: sources.length ? '#F0FDF4' : 'var(--bg)' }}>
+                          <span className="text-sm font-semibold" style={{ color: 'var(--fg)' }}>
+                            {ref.tractate} {ref.chapter}:{ref.mishna}
+                          </span>
+                          <span className="text-right text-xs" style={{ color: sources.length ? '#065F46' : 'var(--muted)' }}>
+                            {sources.length ? `Learned · ${sources.join(' + ')}` : 'Not learned'}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              )}
 
               {progressError && (
                 <div role="alert" className="rounded-xl border px-4 py-3 text-sm" style={{ background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
@@ -349,29 +476,19 @@ export default function LearnPage() {
               )}
 
               {/* Read-along Mishna text (Hebrew + English) for this lesson */}
-              {currentEp.mishna_day_number != null ? (
-                <MishnaText day={currentEp.mishna_day_number} />
-              ) : currentEp.tractate && currentEp.chapter_from != null && currentEp.mishna_from != null ? (
-                <MishnaText single={{ tractate: currentEp.tractate, chapter: currentEp.chapter_from, mishna: currentEp.mishna_from }} />
-              ) : null}
+              {currentUnits.length > 0 ? <MishnaText indices={currentUnits.map(unit => unit.global_index)} /> : null}
 
               {/* Episode info */}
               <div className="card p-5">
                 <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--fg)' }}>About this lesson</h3>
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
-                  {currentEp.tractate && (
-                    <>
-                      <span className="font-medium" style={{ color: 'var(--gold-dark)' }}>Tractate {currentEp.tractate}</span>
-                      {currentEp.chapter_from && ` · Chapter ${currentEp.chapter_from}`}
-                      {currentEp.mishna_from && `, Mishna ${currentEp.mishna_from}`}
-                      {currentEp.mishna_to && currentEp.mishna_to !== currentEp.mishna_from && ` – ${currentEp.mishna_to}`}
-                    </>
-                  )}
+                  <span className="font-medium" style={{ color: 'var(--gold-dark)' }}>{mishnaRangeLabel(currentRefs)}</span>
+                  {currentUnits.length > 0 && ` · ${currentUnits.length} ${currentUnits.length === 1 ? 'Mishnah' : 'Mishnayot'}`}
                 </p>
                 {currentEp.mishna_day_number && (
                   <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
                     Mishna Yomit Day {currentEp.mishna_day_number}
-                    {currentEp.mishna_day_number === today.dayNumber && (
+                    {episodeBelongsToLesson(currentEp, todayGlobalIndices) && (
                       <span className="ml-2" style={{ color: 'var(--gold-dark)' }}>· Today&apos;s lesson</span>
                     )}
                   </p>
@@ -428,9 +545,11 @@ export default function LearnPage() {
                     publishedAt: ep.published_at,
                     mishnaDayNumber: ep.mishna_day_number,
                   }}
+                  referenceLabel={referenceLabelForEpisode(ep)}
+                  learnedCount={learnedCountForEpisode(ep)}
+                  totalMishnayot={episodeUnits(ep).length}
                   isActive={realIdx === currentIdx}
-                  isCompleted={progress[ep.id]?.completed || false}
-                  isToday={ep.mishna_day_number === today.dayNumber}
+                  isToday={episodeBelongsToLesson(ep, todayGlobalIndices)}
                   onClick={() => setCurrentIdx(realIdx)}
                 />
               );

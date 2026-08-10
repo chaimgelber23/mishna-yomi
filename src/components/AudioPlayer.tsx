@@ -8,11 +8,13 @@ interface Episode {
   durationSeconds?: number | null; tractate?: string | null;
   chapterFrom?: number | null; mishnaFrom?: number | null;
   chapterTo?: number | null; mishnaTo?: number | null;
+  referenceLabel?: string;
 }
 
 interface AudioPlayerProps {
   episode: Episode;
   onComplete?: (positionSeconds: number) => boolean | void | Promise<boolean | void>;
+  onRemoveComplete?: (positionSeconds: number) => boolean | void | Promise<boolean | void>;
   onPositionChange?: (s: number) => void | Promise<void>;
   onPrev?: () => void; onNext?: () => void;
   hasPrev?: boolean; hasNext?: boolean; initialPosition?: number; initialCompleted?: boolean;
@@ -20,7 +22,7 @@ interface AudioPlayerProps {
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
-export default function AudioPlayer({ episode, onComplete, onPositionChange, onPrev, onNext, hasPrev = false, hasNext = false, initialPosition = 0, initialCompleted = false }: AudioPlayerProps) {
+export default function AudioPlayer({ episode, onComplete, onRemoveComplete, onPositionChange, onPrev, onNext, hasPrev = false, hasNext = false, initialPosition = 0, initialCompleted = false }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -31,7 +33,8 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
   const [completing, setCompleting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
-  const completionPending = useRef(initialCompleted);
+  const completionPending = useRef(false);
+  const completedRef = useRef(initialCompleted);
   const key = `mishna-pos-${episode.id}`;
 
   function clearPendingSave() {
@@ -43,7 +46,8 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
 
   useEffect(() => {
     setCompleted(initialCompleted);
-    completionPending.current = initialCompleted;
+    completedRef.current = initialCompleted;
+    completionPending.current = false;
     if (initialCompleted) clearPendingSave();
   }, [initialCompleted]);
 
@@ -60,7 +64,7 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
   useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = SPEEDS[speedIdx]; }, [speedIdx]);
 
   const save = useCallback((t: number) => {
-    if (completionPending.current) return;
+    if (completionPending.current || completedRef.current) return;
     localStorage.setItem(key, String(Math.floor(t)));
     onPositionChange?.(Math.floor(t));
   }, [key, onPositionChange]);
@@ -69,14 +73,17 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
     if (!audioRef.current) return;
     const t = audioRef.current.currentTime;
     setCurrentTime(t);
-    if (completionPending.current) return;
+    if (completionPending.current || completedRef.current) return;
     clearPendingSave();
     saveTimer.current = setTimeout(() => save(t), 5000);
   }
 
   function onLoaded() { if (!audioRef.current) return; setDuration(audioRef.current.duration); setLoaded(true); }
-  async function markComplete() {
+  async function setListened(nextCompleted: boolean) {
     if (completionPending.current) return;
+
+    const handler = nextCompleted ? onComplete : onRemoveComplete;
+    if (!handler) return;
 
     completionPending.current = true;
     clearPendingSave();
@@ -86,9 +93,11 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
     localStorage.setItem(key, String(finalPosition));
 
     try {
-      const saved = await onComplete?.(finalPosition);
+      const saved = await handler(finalPosition);
       if (saved !== false) {
-        setCompleted(true);
+        completedRef.current = nextCompleted;
+        setCompleted(nextCompleted);
+        completionPending.current = false;
         setCompleting(false);
         return;
       }
@@ -99,7 +108,10 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
     completionPending.current = false;
     setCompleting(false);
   }
-  function onEnded() { setPlaying(false); void markComplete(); }
+  function onEnded() {
+    setPlaying(false);
+    if (!completedRef.current) void setListened(true);
+  }
   function togglePlay() {
     if (!audioRef.current) return;
     if (playing) { audioRef.current.pause(); save(currentTime); } else audioRef.current.play();
@@ -119,13 +131,13 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
   }
 
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const ref = episode.tractate
+  const ref = episode.referenceLabel || (episode.tractate
     ? episode.chapterFrom && episode.mishnaFrom
       ? episode.chapterFrom === episode.chapterTo
         ? `${episode.tractate} ${episode.chapterFrom}:${episode.mishnaFrom}${episode.mishnaTo !== episode.mishnaFrom ? `–${episode.mishnaTo}` : ''}`
         : `${episode.tractate} ${episode.chapterFrom}:${episode.mishnaFrom}–${episode.chapterTo}:${episode.mishnaTo}`
       : episode.tractate
-    : '';
+    : '');
 
   return (
     <div className="card overflow-hidden" style={{ borderColor: 'var(--border)', boxShadow: playing ? '0 4px 24px rgba(34,26,16,0.12)' : '0 1px 4px rgba(0,0,0,0.05)', transition: 'box-shadow 0.3s' }}>
@@ -148,7 +160,7 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
             <span className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border"
               style={{ background: '#ECFDF5', borderColor: '#A7F3D0', color: '#065F46' }}>
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-              Complete
+              Listened
             </span>
           )}
         </div>
@@ -214,10 +226,10 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
 
             <button
               type="button"
-              onClick={() => void markComplete()}
-              disabled={completed || completing}
+              onClick={() => void setListened(!completed)}
+              disabled={completing}
               aria-pressed={completed}
-              aria-label={completed ? 'Lesson completed' : completing ? 'Saving completion' : 'Mark lesson complete'}
+              aria-label={completed ? 'Remove listened mark' : completing ? 'Saving listened status' : 'Mark lesson as listened'}
               className="inline-flex min-h-11 min-w-[7.25rem] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:cursor-default"
               style={completed
                 ? { color: '#065F46', borderColor: '#A7F3D0', background: '#ECFDF5' }
@@ -225,7 +237,7 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
               <svg className="h-3.5 w-3.5" fill={completed ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
               </svg>
-              {completed ? 'Completed' : completing ? 'Saving...' : 'Mark complete'}
+              {completing ? 'Saving...' : completed ? 'Remove listened' : 'Mark as listened'}
             </button>
           </div>
         </div>

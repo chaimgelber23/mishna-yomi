@@ -1,111 +1,163 @@
+/**
+ * Seed/update episodes through the same exact resolver and protected RPC as
+ * the production RSS sync. Run with:
+ *
+ *   npx tsx scripts/seed-db.mjs
+ *
+ * Plain `node` is intentionally unsupported because this script imports the
+ * TypeScript source of truth. Failing before a write is safer than maintaining
+ * a second, lossy parser here.
+ */
+
 import { createClient } from '@supabase/supabase-js';
+import episodeMappingModule from '../src/lib/episode-mapping';
+import calendarModule from '../src/lib/calendar';
 
-const url = process.env.MISHNA_SUPABASE_URL ?? process.env.SUPABASE_URL ?? 'https://trakxowvjsosbzbbfoxq.supabase.co';
+const {
+  isPotentialMishnaLesson,
+  resolveEpisodeMapping,
+} = episodeMappingModule;
+const { getDayNumber } = calendarModule;
+
+const url = process.env.MISHNA_SUPABASE_URL
+  ?? process.env.SUPABASE_URL
+  ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!key) { console.error('Set SUPABASE_SERVICE_ROLE_KEY env var'); process.exit(1); }
 
-const supabase = createClient(url, key);
-
-const CYCLE_START = new Date('2021-12-25');
-function getDayNumber(date) {
-  return Math.floor((date.getTime() - CYCLE_START.getTime()) / 86400000) + 1;
+if (!url || !key) {
+  console.error('Set MISHNA_SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY.');
+  process.exit(1);
 }
 
-const TRACTATE_MAP = {
-  'Shabbos':'Shabbat','Kesubos':'Ketubot','Gitin':'Gittin','Kidushin':'Kiddushin',
-  'Bava Kama':'Bava Kamma','Bava Basra':'Bava Batra','Makos':'Makkot','Shevuos':'Shevuot',
-  'Eduyos':'Eduyot','Avos':'Avot','Horayos':'Horayot','Menachos':'Menachot',
-  'Chulin':'Chullin','Bechoros':'Bekhorot','Erchin':'Arakhin','Kerisus':'Keritot','Nida':'Niddah',
-};
-function normalize(name) {
-  if (!name) return null;
-  const clean = name.replace(/\s+\d+:\d+\s*-.*$/, '').trim();
-  return TRACTATE_MAP[clean] ?? clean;
-}
-
-function parseMishnaTitle(title) {
-  const cleaned = title.replace(/^Mishna\s+Yomi\s*[-:]\s*/i, '').replace(/\s*-\s*By.*$/i, '').trim();
-  const cross = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+):(\d+)\s*$/);
-  if (cross) return { tractate: normalize(cross[1].trim()), chapterFrom: +cross[2], mishnaFrom: +cross[3], chapterTo: +cross[4], mishnaTo: +cross[5] };
-  const same = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*-\s*(\d+)\s*$/);
-  if (same) return { tractate: normalize(same[1].trim()), chapterFrom: +same[2], mishnaFrom: +same[3], chapterTo: +same[2], mishnaTo: +same[4] };
-  const single = cleaned.match(/^(.+?)\s+(\d+):(\d+)\s*$/);
-  if (single) return { tractate: normalize(single[1].trim()), chapterFrom: +single[2], mishnaFrom: +single[3], chapterTo: +single[2], mishnaTo: +single[3] };
-  return { tractate: null, chapterFrom: null, mishnaFrom: null, chapterTo: null, mishnaTo: null };
-}
+const supabase = createClient(url, key, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+const RSS_URL = 'https://anchor.fm/s/efb348c8/podcast/rss';
+const SYNC_CONCURRENCY = 6;
 
 function getTag(xml, name) {
-  const cd = xml.match(new RegExp(`<${name}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${name}>`, 'i'));
-  if (cd) return cd[1].trim();
-  const m = xml.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'));
-  return m ? m[1].trim() : null;
+  const cdata = xml.match(
+    new RegExp(`<${name}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${name}>`, 'i')
+  );
+  if (cdata) return cdata[1].trim();
+  const match = xml.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, 'i'));
+  return match ? match[1].trim() : null;
 }
+
 function getAttr(xml, tag, attr) {
-  const m = xml.match(new RegExp(`<${tag}[^>]+${attr}="([^"]*)"`, 'i'));
-  return m ? m[1] : null;
+  const match = xml.match(new RegExp(`<${tag}[^>]+${attr}="([^"]*)"`, 'i'));
+  return match ? match[1] : null;
 }
-function parseDuration(d) {
-  if (!d) return null;
-  if (/^\d+$/.test(d)) return +d;
-  const p = d.split(':').map(Number);
-  if (p.length === 3) return p[0]*3600 + p[1]*60 + p[2];
-  if (p.length === 2) return p[0]*60 + p[1];
+
+function parseDuration(value) {
+  if (!value) return null;
+  if (/^\d+$/.test(value)) return Number(value);
+  const parts = value.split(':').map(Number);
+  if (parts.some(Number.isNaN)) return null;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
   return null;
 }
 
 async function run() {
   console.log('Fetching RSS...');
-  const res = await fetch('https://anchor.fm/s/efb348c8/podcast/rss', {
-    headers: { 'User-Agent': 'MishnaYomi/1.0' }
+  const response = await fetch(RSS_URL, {
+    headers: { 'User-Agent': 'MishnaYomi/1.0 database seed' },
   });
-  const xml = await res.text();
-  const items = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? [];
-  console.log(`Found ${items.length} episodes`);
+  if (!response.ok) throw new Error(`RSS fetch failed: ${response.status}`);
 
-  const records = [];
+  const xml = await response.text();
+  const items = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? [];
+  const candidates = [];
+  const unresolved = [];
+  let skipped = 0;
+
   for (const block of items) {
     const audioUrl = getAttr(block, 'enclosure', 'url');
     if (!audioUrl) continue;
+
     const title = getTag(block, 'title') ?? 'Untitled';
-    const guid = getTag(block, 'guid') ?? audioUrl;
-    const pubDate = getTag(block, 'pubDate');
-    const publishedAt = pubDate ? new Date(pubDate) : new Date();
-    const duration = parseDuration(getTag(block, 'itunes:duration'));
-    const parsed = parseMishnaTitle(title);
-    records.push({
-      guid: guid.slice(0, 500),
-      title: title.slice(0, 500),
-      description: null,
-      audio_url: audioUrl.slice(0, 1000),
-      duration_seconds: duration,
-      published_at: publishedAt.toISOString(),
-      tractate: parsed.tractate,
-      chapter_from: parsed.chapterFrom,
-      mishna_from: parsed.mishnaFrom,
-      chapter_to: parsed.chapterTo,
-      mishna_to: parsed.mishnaTo,
-      mishna_day_number: getDayNumber(publishedAt),
+    const mapping = resolveEpisodeMapping(title);
+    if (!mapping.ok) {
+      if (isPotentialMishnaLesson(title)) {
+        unresolved.push({ title, reason: mapping.reason });
+      } else {
+        skipped++;
+      }
+      continue;
+    }
+
+    const publication = getTag(block, 'pubDate') ?? getTag(block, 'dc:date');
+    const publishedAt = publication ? new Date(publication) : new Date();
+    if (Number.isNaN(publishedAt.getTime())) {
+      unresolved.push({ title, reason: `Invalid publication date: ${publication}` });
+      continue;
+    }
+
+    candidates.push({
+      guid: getTag(block, 'guid') ?? audioUrl,
+      title,
+      description: getTag(block, 'description') ?? getTag(block, 'itunes:summary') ?? null,
+      audioUrl,
+      durationSeconds: parseDuration(getTag(block, 'itunes:duration')),
+      publishedAt,
+      mapping,
     });
   }
 
-  console.log(`Upserting ${records.length} records in batches...`);
-  let inserted = 0, errors = 0;
-  const BATCH = 50;
-  for (let i = 0; i < records.length; i += BATCH) {
-    const batch = records.slice(i, i + BATCH);
-    const { error } = await supabase.from('mishna_episodes').upsert(batch, { onConflict: 'guid' });
-    if (error) {
-      console.error(`Batch ${i}-${i+BATCH} error:`, error.message, error.details);
-      errors += batch.length;
-    } else {
-      inserted += batch.length;
-      process.stdout.write(`\r  ${inserted}/${records.length}`);
-    }
+  if (unresolved.length) {
+    console.error('Refusing a partial seed. Unresolved Mishnah lessons:', unresolved);
+    process.exitCode = 1;
+    return;
   }
-  console.log(`\nDone. Inserted: ${inserted}, Errors: ${errors}`);
 
-  const { count } = await supabase.from('mishna_episodes').select('*', { count: 'exact', head: true });
-  console.log('Total rows in DB:', count);
+  console.log(`Resolved ${candidates.length} lessons; skipped ${skipped} non-lesson items.`);
+  let synced = 0;
+  const failures = [];
+
+  for (let offset = 0; offset < candidates.length; offset += SYNC_CONCURRENCY) {
+    const batch = candidates.slice(offset, offset + SYNC_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async (candidate) => {
+        const first = candidate.mapping.units[0];
+        const last = candidate.mapping.units[candidate.mapping.units.length - 1];
+        const { error } = await supabase.rpc('sync_mishna_episode', {
+          p_guid: candidate.guid,
+          p_title: candidate.title,
+          p_description: candidate.description,
+          p_audio_url: candidate.audioUrl,
+          p_duration_seconds: candidate.durationSeconds,
+          p_published_at: candidate.publishedAt.toISOString(),
+          p_tractate: first.tractate,
+          p_chapter_from: first.chapter,
+          p_mishna_from: first.mishna,
+          p_chapter_to: last.chapter,
+          p_mishna_to: last.mishna,
+          p_mishna_day_number: getDayNumber(candidate.publishedAt),
+          p_global_indices: candidate.mapping.globalIndices,
+        });
+        return error ? { title: candidate.title, error: error.message } : null;
+      })
+    );
+
+    for (const failure of results) {
+      if (failure) failures.push(failure);
+      else synced++;
+    }
+    process.stdout.write(`\r  ${synced}/${candidates.length}`);
+  }
+
+  console.log('');
+  if (failures.length) {
+    console.error(`Seed completed with ${failures.length} RPC failures:`, failures.slice(0, 25));
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`Done. Synced ${synced} exact episode mappings.`);
 }
 
-run().catch(console.error);
+run().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

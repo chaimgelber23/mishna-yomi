@@ -4,33 +4,39 @@ import { formatDuration } from '@/lib/rss';
 
 interface EpisodeCardProps {
   episode: { id: string; title: string; tractate?: string | null; chapterFrom?: number | null; mishnaFrom?: number | null; chapterTo?: number | null; mishnaTo?: number | null; durationSeconds?: number | null; publishedAt: string; mishnaDayNumber?: number | null; };
+  referenceLabel?: string;
+  learnedCount?: number;
+  totalMishnayot?: number;
   isActive?: boolean; isCompleted?: boolean; isToday?: boolean; onClick?: () => void;
 }
 
-export default function EpisodeCard({ episode, isActive = false, isCompleted = false, isToday = false, onClick }: EpisodeCardProps) {
-  let label = '';
-  if (episode.tractate && episode.chapterFrom && episode.mishnaFrom) {
+export default function EpisodeCard({ episode, referenceLabel, learnedCount = 0, totalMishnayot = 0, isActive = false, isCompleted = false, isToday = false, onClick }: EpisodeCardProps) {
+  let label = referenceLabel ?? '';
+  if (!label && episode.tractate && episode.chapterFrom && episode.mishnaFrom) {
     label = episode.chapterFrom === episode.chapterTo
       ? `${episode.tractate} ${episode.chapterFrom}:${episode.mishnaFrom}–${episode.mishnaTo}`
       : `${episode.tractate} ${episode.chapterFrom}:${episode.mishnaFrom}–${episode.chapterTo}:${episode.mishnaTo}`;
-  } else {
+  } else if (!label) {
     label = episode.title.replace(/^Mishna Yomi\s*[-:]\s*/i, '').replace(/\s*-\s*By.*$/i, '');
   }
+
+  const fullyLearned = totalMishnayot > 0 ? learnedCount >= totalMishnayot : isCompleted;
+  const partiallyLearned = !fullyLearned && learnedCount > 0;
 
   return (
     <div onClick={onClick} className="group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all border"
       style={{
-        background: isActive ? 'rgba(34,26,16,0.06)' : isCompleted ? 'rgba(6,95,70,0.04)' : 'transparent',
-        borderColor: isActive ? 'rgba(34,26,16,0.2)' : isCompleted ? 'rgba(167,243,208,0.6)' : isToday ? 'rgba(201,169,110,0.3)' : 'transparent',
+        background: isActive ? 'rgba(34,26,16,0.06)' : fullyLearned ? 'rgba(6,95,70,0.04)' : 'transparent',
+        borderColor: isActive ? 'rgba(34,26,16,0.2)' : fullyLearned ? 'rgba(167,243,208,0.6)' : partiallyLearned ? 'rgba(201,169,110,0.45)' : isToday ? 'rgba(201,169,110,0.3)' : 'transparent',
       }}>
       <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center border transition-all"
         style={{
-          background: isActive ? 'rgba(34,26,16,0.1)' : isCompleted ? '#ECFDF5' : 'var(--bg)',
-          borderColor: isActive ? 'rgba(34,26,16,0.25)' : isCompleted ? '#A7F3D0' : 'var(--border)',
+          background: isActive ? 'rgba(34,26,16,0.1)' : fullyLearned ? '#ECFDF5' : partiallyLearned ? '#FFFBEB' : 'var(--bg)',
+          borderColor: isActive ? 'rgba(34,26,16,0.25)' : fullyLearned ? '#A7F3D0' : partiallyLearned ? '#FDE68A' : 'var(--border)',
         }}>
         {isActive
           ? <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--navy)' }}><path d="M8 5v14l11-7z"/></svg>
-          : isCompleted
+          : fullyLearned
             ? <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" style={{ color: '#065F46' }}><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             : <svg className="w-3 h-3 ml-0.5" fill="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--muted)' }}><path d="M8 5v14l11-7z"/></svg>}
       </div>
@@ -45,6 +51,18 @@ export default function EpisodeCard({ episode, isActive = false, isCompleted = f
         </div>
         {episode.mishnaDayNumber && <span className="text-[11px]" style={{ color: 'var(--muted)' }}>Day {episode.mishnaDayNumber}</span>}
       </div>
+
+      {totalMishnayot > 0 && (
+        <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+          aria-label={`${learnedCount} of ${totalMishnayot} Mishnayot learned`}
+          style={fullyLearned
+            ? { background: '#ECFDF5', borderColor: '#A7F3D0', color: '#065F46' }
+            : partiallyLearned
+              ? { background: '#FFFBEB', borderColor: '#FDE68A', color: '#92400E' }
+              : { background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--muted)' }}>
+          {learnedCount}/{totalMishnayot}
+        </span>
+      )}
 
       {episode.durationSeconds && (
         <span className="flex-shrink-0 text-[11px] font-mono" style={{ color: 'var(--muted)' }}>

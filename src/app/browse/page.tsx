@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MishnaText from '@/components/MishnaText';
 import {
-  SEDARIM, SEDER_HEBREW, TRACTATE_HEBREW,
+  ALL_MISHNAYOT, SEDARIM, SEDER_HEBREW, TRACTATE_HEBREW,
   type SederInfo, type TractateInfo,
 } from '@/lib/mishna-data';
 
@@ -18,6 +18,67 @@ interface Crumb {
 interface EpisodeStub {
   id: string; audio_url: string; title: string; tractate: string;
   chapter_from: number; mishna_from: number; chapter_to: number; mishna_to: number;
+  mishna_episode_units: Array<{
+    global_index: number; sequence: number; mapping_source?: string; verified_at?: string;
+  }>;
+}
+
+interface MishnaProgressRecord {
+  global_index: number;
+  listened_at: string | null;
+  self_studied_at: string | null;
+  cycle_completed_at: string | null;
+  learned_at: string | null;
+  learned_by_listening: boolean;
+  learned_by_self_study: boolean;
+  learned_by_cycle: boolean;
+  learned: boolean;
+}
+
+interface SaveFailure {
+  desiredSelfStudy: boolean;
+  message: string;
+}
+
+const MISHNA_BY_REFERENCE = new Map(
+  ALL_MISHNAYOT.map(unit => [`${unit.tractate}-${unit.chapter}-${unit.mishna}`, unit]),
+);
+
+function mishnaForReference(tractate: string, chapter: number, mishna: number) {
+  return MISHNA_BY_REFERENCE.get(`${tractate}-${chapter}-${mishna}`);
+}
+
+function isLearned(progress?: MishnaProgressRecord) {
+  return Boolean(
+    progress?.learned
+    || progress?.self_studied_at
+    || progress?.listened_at
+    || progress?.cycle_completed_at,
+  );
+}
+
+function learningSources(progress?: MishnaProgressRecord) {
+  const sources: string[] = [];
+  if (progress?.learned_by_self_study || progress?.self_studied_at) sources.push('Self-study');
+  if (progress?.learned_by_listening || progress?.listened_at) sources.push('Audio');
+  if (progress?.learned_by_cycle || progress?.cycle_completed_at) sources.push('My Cycle');
+  return sources;
+}
+
+function browsePath(seder?: string, tractate?: string, chapter?: number | null, mishna?: number | null) {
+  const params = new URLSearchParams();
+  if (seder) params.set('seder', seder);
+  if (tractate) params.set('tractate', tractate);
+  if (chapter != null) params.set('chapter', String(chapter));
+  if (mishna != null) params.set('mishna', String(mishna));
+  const query = params.toString();
+  return query ? `/browse?${query}` : '/browse';
+}
+
+function positiveInteger(value: string | null) {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return parsed > 0 ? parsed : null;
 }
 
 /* Six sedarim — muted earth tones, matching the homepage seder strip */
@@ -42,18 +103,72 @@ export default function BrowsePage() {
   const [selectedSeder, setSelectedSeder]       = useState<SederInfo | null>(null);
   const [selectedTractate, setSelectedTractate] = useState<TractateInfo | null>(null);
   const [selectedChapter, setSelectedChapter]   = useState<number | null>(null);
+  const [targetMishna, setTargetMishna]         = useState<number | null>(null);
   const [episodes, setEpisodes]                 = useState<EpisodeStub[]>([]);
-  const [progress, setProgress]                 = useState<Record<string, boolean>>({});
+  const [mishnaProgress, setMishnaProgress]     = useState<Record<number, MishnaProgressRecord>>({});
+  const [progressReady, setProgressReady]       = useState(false);
   const [progressNotice, setProgressNotice]     = useState<'signed-out' | 'error' | null>(null);
+  const [pendingMishnayot, setPendingMishnayot] = useState<Set<number>>(new Set());
+  const [saveFailures, setSaveFailures]         = useState<Record<number, SaveFailure>>({});
+  const [progressAnnouncement, setProgressAnnouncement] = useState('');
   const [openText, setOpenText]                 = useState<string | null>(null);
 
-  // Deep-link: /browse?seder=Zeraim pre-selects that seder (from the homepage cards)
+  // Stable deep links can open any level, down to one Mishnah.
   useEffect(() => {
-    const param = new URLSearchParams(window.location.search).get('seder');
-    if (!param) return;
-    const match = SEDARIM.find(s => s.name.toLowerCase() === param.toLowerCase());
-    if (match) { setSelectedSeder(match); setLevel('tractate'); }
+    const params = new URLSearchParams(window.location.search);
+    const sederParam = params.get('seder');
+    const tractateParam = params.get('tractate');
+    let matchedSeder = sederParam
+      ? SEDARIM.find(s => s.name.toLowerCase() === sederParam.toLowerCase()) ?? null
+      : null;
+    let matchedTractate: TractateInfo | null = null;
+
+    if (tractateParam) {
+      for (const seder of SEDARIM) {
+        const tractate = seder.tractates.find(
+          candidate => candidate.tractate.toLowerCase() === tractateParam.toLowerCase(),
+        );
+        if (tractate) {
+          matchedSeder = seder;
+          matchedTractate = tractate;
+          break;
+        }
+      }
+    }
+
+    if (!matchedSeder) return;
+    setSelectedSeder(matchedSeder);
+
+    if (!matchedTractate) {
+      setLevel('tractate');
+      return;
+    }
+
+    setSelectedTractate(matchedTractate);
+    const requestedChapter = positiveInteger(params.get('chapter'));
+    if (!requestedChapter || requestedChapter > matchedTractate.chapters.length) {
+      setLevel('chapter');
+      return;
+    }
+
+    setSelectedChapter(requestedChapter);
+    setLevel('mishna');
+    const requestedMishna = positiveInteger(params.get('mishna'));
+    if (requestedMishna && requestedMishna <= matchedTractate.chapters[requestedChapter - 1]) {
+      setTargetMishna(requestedMishna);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!selectedTractate || selectedChapter === null || targetMishna === null) return;
+    const unit = mishnaForReference(selectedTractate.tractate, selectedChapter, targetMishna);
+    if (!unit) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`mishna-${unit.globalIndex}`)?.scrollIntoView({ block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedChapter, selectedTractate, targetMishna]);
 
   useEffect(() => {
     if (!selectedTractate) { setEpisodes([]); return; }
@@ -73,23 +188,32 @@ export default function BrowsePage() {
   }, [selectedTractate]);
 
   useEffect(() => {
-    fetch('/api/progress').then(async r => {
-      if (r.status === 401) { setProgressNotice('signed-out'); return; }
-      if (!r.ok)            { setProgressNotice('error'); return; }
-      const data = await r.json();
-      if (data.progress) {
-        const map: Record<string, boolean> = {};
-        for (const p of data.progress) {
-          if (p.completed && p.episode) {
-            const ep = p.episode as EpisodeStub;
-            map[`${ep.tractate}-${ep.chapter_from}-${ep.mishna_from}`] = true;
-            if (ep.chapter_from !== ep.chapter_to || ep.mishna_from !== ep.mishna_to)
-              map[`${ep.tractate}-${ep.chapter_to}-${ep.mishna_to}`] = true;
-          }
+    const controller = new AbortController();
+
+    async function loadProgress() {
+      try {
+        const response = await fetch('/api/progress', { signal: controller.signal });
+        if (response.status === 401) {
+          setProgressNotice('signed-out');
+          return;
         }
-        setProgress(map);
+        if (!response.ok) throw new Error('Progress request failed');
+
+        const data = await response.json() as { mishnaProgress?: MishnaProgressRecord[] };
+        const map: Record<number, MishnaProgressRecord> = {};
+        for (const item of data.mishnaProgress ?? []) map[item.global_index] = item;
+        setMishnaProgress(map);
+        setProgressNotice(null);
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        setProgressNotice('error');
+      } finally {
+        if (!controller.signal.aborted) setProgressReady(true);
       }
-    }).catch(() => setProgressNotice('error'));
+    }
+
+    void loadProgress();
+    return () => controller.abort();
   }, []);
 
   const crumbs: Crumb[] = [{ label: 'All Sedarim', level: 'seder' }];
@@ -97,13 +221,35 @@ export default function BrowsePage() {
   if (selectedTractate) crumbs.push({ label: selectedTractate.tractate,  level: 'chapter' });
   if (selectedChapter !== null) crumbs.push({ label: `Chapter ${selectedChapter}`, level: 'mishna' });
 
-  function navTo(crumb: Crumb) {
-    if (crumb.level === 'seder')    { setSelectedSeder(null); setSelectedTractate(null); setSelectedChapter(null); setLevel('seder'); }
-    else if (crumb.level === 'tractate') { setSelectedTractate(null); setSelectedChapter(null); setLevel('tractate'); }
-    else if (crumb.level === 'chapter')  { setSelectedChapter(null); setLevel('chapter'); }
+  function navigateTo(
+    seder: SederInfo | null,
+    tractate: TractateInfo | null = null,
+    chapter: number | null = null,
+    mishna: number | null = null,
+  ) {
+    setSelectedSeder(seder);
+    setSelectedTractate(tractate);
+    setSelectedChapter(chapter);
+    setTargetMishna(mishna);
+    setOpenText(null);
+    setLevel(chapter !== null ? 'mishna' : tractate ? 'chapter' : seder ? 'tractate' : 'seder');
+    window.history.replaceState(
+      null,
+      '',
+      browsePath(seder?.name, tractate?.tractate, chapter, mishna),
+    );
   }
 
-  function isCompleted(tractate: string, ch: number, m: number) { return !!progress[`${tractate}-${ch}-${m}`]; }
+  function navTo(crumb: Crumb) {
+    if (crumb.level === 'seder') navigateTo(null);
+    else if (crumb.level === 'tractate') navigateTo(selectedSeder);
+    else if (crumb.level === 'chapter') navigateTo(selectedSeder, selectedTractate);
+  }
+
+  function isCompleted(tractate: string, ch: number, m: number) {
+    const unit = mishnaForReference(tractate, ch, m);
+    return unit ? isLearned(mishnaProgress[unit.globalIndex]) : false;
+  }
 
   function tractateCompletedCount(t: TractateInfo) {
     let n = 0;
@@ -113,13 +259,123 @@ export default function BrowsePage() {
     return n;
   }
 
-  function episodeForMishna(ch: number, m: number) {
+  function episodeForMishna(globalIndex: number) {
     return episodes.find(ep =>
-      ep.tractate === selectedTractate?.tractate && (
-        (ep.chapter_from === ch && ep.mishna_from === m) ||
-        (ep.chapter_to === ch && ep.mishna_to === m)
-      )
+      ep.mishna_episode_units?.some(unit => unit.global_index === globalIndex),
     );
+  }
+
+  function signInForMishna(chapter: number, mishna: number) {
+    const next = browsePath(
+      selectedSeder?.name,
+      selectedTractate?.tractate,
+      chapter,
+      mishna,
+    );
+    window.location.assign(`/auth/login?next=${encodeURIComponent(next)}`);
+  }
+
+  async function saveSelfStudy(
+    globalIndex: number,
+    desiredSelfStudy: boolean,
+    label: string,
+    chapter: number,
+    mishna: number,
+  ) {
+    if (pendingMishnayot.has(globalIndex)) return;
+    if (progressNotice === 'signed-out') {
+      signInForMishna(chapter, mishna);
+      return;
+    }
+
+    const previous = mishnaProgress[globalIndex];
+    const now = new Date().toISOString();
+    const hasOtherSource = Boolean(previous?.listened_at || previous?.cycle_completed_at);
+    const learnedAfterChange = desiredSelfStudy || hasOtherSource;
+    const optimistic: MishnaProgressRecord = {
+      global_index: globalIndex,
+      listened_at: previous?.listened_at ?? null,
+      cycle_completed_at: previous?.cycle_completed_at ?? null,
+      self_studied_at: desiredSelfStudy
+        ? previous?.self_studied_at ?? now
+        : null,
+      learned_at: learnedAfterChange ? previous?.learned_at ?? now : null,
+      learned_by_listening: Boolean(previous?.listened_at),
+      learned_by_self_study: desiredSelfStudy,
+      learned_by_cycle: Boolean(previous?.cycle_completed_at),
+      learned: learnedAfterChange,
+    };
+
+    setPendingMishnayot(current => new Set(current).add(globalIndex));
+    setSaveFailures(current => {
+      const next = { ...current };
+      delete next[globalIndex];
+      return next;
+    });
+    setMishnaProgress(current => ({ ...current, [globalIndex]: optimistic }));
+
+    try {
+      const response = await fetch('/api/progress/mishna', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ globalIndex, selfStudied: desiredSelfStudy }),
+      });
+
+      if (response.status === 401) {
+        setMishnaProgress(current => {
+          const next = { ...current };
+          if (previous) next[globalIndex] = previous;
+          else delete next[globalIndex];
+          return next;
+        });
+        setProgressNotice('signed-out');
+        signInForMishna(chapter, mishna);
+        return;
+      }
+
+      if (!response.ok) throw new Error('Self-study save failed');
+      const data = await response.json() as { mishnaProgress?: MishnaProgressRecord };
+      if (data.mishnaProgress) {
+        setMishnaProgress(current => ({
+          ...current,
+          [globalIndex]: data.mishnaProgress as MishnaProgressRecord,
+        }));
+      }
+      const remainingSources = learningSources(optimistic).filter(source => source !== 'Self-study');
+      if (desiredSelfStudy) {
+        setProgressAnnouncement(
+          remainingSources.length > 0
+            ? `Self-study recorded for ${label}. It was already learned through ${remainingSources.join(' and ')}.`
+            : `Self-study recorded for ${label}.`,
+        );
+      } else {
+        setProgressAnnouncement(
+          remainingSources.length > 0
+            ? `Self-study mark removed from ${label}. It remains learned through ${remainingSources.join(' and ')}.`
+            : `Self-study mark removed from ${label}.`,
+        );
+      }
+    } catch {
+      setMishnaProgress(current => {
+        const next = { ...current };
+        if (previous) next[globalIndex] = previous;
+        else delete next[globalIndex];
+        return next;
+      });
+      setSaveFailures(current => ({
+        ...current,
+        [globalIndex]: {
+          desiredSelfStudy,
+          message: `We couldn't save ${label}. Your previous progress is still shown.`,
+        },
+      }));
+    } finally {
+      setPendingMishnayot(current => {
+        const next = new Set(current);
+        next.delete(globalIndex);
+        return next;
+      });
+    }
   }
 
   const pal = selectedSeder ? getPalette(selectedSeder.name) : SEDER_PALETTES[0];
@@ -131,7 +387,7 @@ export default function BrowsePage() {
         {SEDARIM.map((seder, i) => {
           const p = SEDER_PALETTES[i];
           return (
-            <button key={seder.name} onClick={() => { setSelectedSeder(seder); setLevel('tractate'); }}
+            <button key={seder.name} onClick={() => navigateTo(seder)}
               className="group text-left p-7 rounded-2xl border transition-all duration-200 cursor-pointer hover:shadow-lg hover:-translate-y-0.5"
               style={{ background: p.bg, borderColor: p.border }}>
               <div className="flex items-start justify-between mb-4">
@@ -184,7 +440,7 @@ export default function BrowsePage() {
           const pct  = t.totalMishnayot > 0 ? Math.round((done / t.totalMishnayot) * 100) : 0;
           return (
             <button key={t.tractate}
-              onClick={() => { setSelectedTractate(t); setLevel('chapter'); }}
+              onClick={() => navigateTo(selectedSeder, t)}
               className="group text-left p-6 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5"
               style={{ background: pal.bg, borderColor: pal.border }}>
               <div className="flex items-start justify-between mb-3">
@@ -229,7 +485,7 @@ export default function BrowsePage() {
           const pct = mishnaCount > 0 ? Math.round((done / mishnaCount) * 100) : 0;
           return (
             <button key={ch}
-              onClick={() => { setSelectedChapter(ch); setLevel('mishna'); }}
+              onClick={() => navigateTo(selectedSeder, selectedTractate, ch)}
               className="group text-left p-5 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5"
               style={{ background: pct === 100 ? 'rgba(6,95,70,0.05)' : pal.bg, borderColor: pct === 100 ? 'rgba(6,95,70,0.2)' : pal.border }}>
               <div className="text-2xl font-bold mb-1" style={{ color: pct === 100 ? '#065F46' : pal.accent }}>
@@ -260,40 +516,94 @@ export default function BrowsePage() {
     const mishnaCount = selectedTractate.chapters[selectedChapter - 1];
     return (
       <div className="space-y-2">
+        <p className="mb-4 rounded-xl border px-4 py-3 text-sm leading-relaxed"
+          style={{ background: 'rgba(201,169,110,0.07)', borderColor: 'rgba(201,169,110,0.25)', color: 'var(--muted)' }}>
+          Tap a Mishnah number to record self-study. Listening and completed My Cycle days update the same progress without double-counting.
+        </p>
         {Array.from({ length: mishnaCount }, (_, i) => i + 1).map(m => {
-          const ep   = episodeForMishna(selectedChapter, m);
-          const done = isCompleted(selectedTractate.tractate, selectedChapter, m);
+          const unit = mishnaForReference(selectedTractate.tractate, selectedChapter, m);
+          if (!unit) return null;
+
+          const ep = episodeForMishna(unit.globalIndex);
+          const itemProgress = mishnaProgress[unit.globalIndex];
+          const selfStudied = Boolean(itemProgress?.self_studied_at);
+          const done = isLearned(itemProgress);
+          const sources = learningSources(itemProgress);
+          const pending = pendingMishnayot.has(unit.globalIndex);
+          const failure = saveFailures[unit.globalIndex];
           const label = `${selectedTractate.tractate} ${selectedChapter}:${m}`;
           const textKey = `${selectedChapter}:${m}`;
           const isOpen = openText === textKey;
+          const statusId = `mishna-status-${unit.globalIndex}`;
+          const errorId = `mishna-error-${unit.globalIndex}`;
+          const textId = `mishna-text-${unit.globalIndex}`;
           return (
-            <div key={m}>
+            <div key={unit.globalIndex} id={`mishna-${unit.globalIndex}`}>
               <div
                 className="flex flex-col items-stretch gap-3 rounded-xl border p-3 transition-all duration-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4"
                 style={{
                   background: done ? 'rgba(6,95,70,0.04)' : 'rgba(255,255,255,0.7)',
                   borderColor: done ? 'rgba(6,95,70,0.18)' : 'var(--border)',
+                  boxShadow: targetMishna === m ? `0 0 0 2px ${pal.hex}` : undefined,
                 }}>
                 <div className="flex min-w-0 items-center gap-4">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 border"
+                  <button
+                    type="button"
+                    onClick={() => void saveSelfStudy(unit.globalIndex, !selfStudied, label, selectedChapter, m)}
+                    disabled={!progressReady || pending}
+                    aria-pressed={selfStudied}
+                    aria-busy={pending}
+                    aria-describedby={`${statusId}${failure ? ` ${errorId}` : ''}`}
+                    aria-label={progressNotice === 'signed-out'
+                      ? `Sign in to record self-study for ${label}`
+                      : selfStudied
+                        ? `Remove self-study mark from ${label}`
+                        : `Record self-study for ${label}`}
+                    className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border text-sm font-bold transition-all disabled:cursor-wait disabled:opacity-65"
                     style={{
-                      background: done ? '#ECFDF5' : 'var(--bg)',
-                      borderColor: done ? 'rgba(6,95,70,0.25)' : 'var(--border)',
-                      color: done ? '#065F46' : 'var(--muted)',
+                      background: selfStudied ? 'rgba(201,169,110,0.16)' : 'var(--bg)',
+                      borderColor: selfStudied ? 'var(--gold)' : 'var(--border)',
+                      color: selfStudied ? 'var(--navy)' : 'var(--muted)',
                     }}>
-                    {done
-                      ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                      : m}
-                  </div>
-                  <div>
+                    <span aria-hidden="true">{m}</span>
+                    {pending ? (
+                      <svg aria-hidden="true" className="absolute -bottom-1 -right-1 h-4 w-4 animate-spin rounded-full bg-white p-0.5"
+                        fill="none" viewBox="0 0 24 24" style={{ color: 'var(--gold-dark)' }}>
+                        <circle className="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" />
+                        <path className="opacity-80" fill="currentColor" d="M21 12a9 9 0 00-9-9v3a6 6 0 016 6h3z" />
+                      </svg>
+                    ) : selfStudied ? (
+                      <span aria-hidden="true" className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-white"
+                        style={{ background: '#065F46' }}>
+                        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                      </span>
+                    ) : null}
+                  </button>
+                  <div className="min-w-0">
                     <div className="font-medium text-sm" style={{ color: 'var(--fg)' }}>{label}</div>
                     <div className="text-xs" dir="rtl" style={{ color: 'var(--muted)', fontFamily: 'var(--font-hebrew)' }}>
                       {TRACTATE_HEBREW[selectedTractate.tractate] ?? selectedTractate.tractate} {selectedChapter}:{m}
                     </div>
+                    <div id={statusId} className="mt-1 flex min-w-0 items-center gap-1.5 text-xs"
+                      style={{ color: done ? '#065F46' : 'var(--muted)' }}>
+                      {done ? (
+                        <>
+                          <svg aria-hidden="true" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+                          <span className="min-w-0 break-words">Learned · {sources.join(' + ')}</span>
+                        </>
+                      ) : progressNotice === 'signed-out' ? (
+                        <span>Sign in to see saved progress</span>
+                      ) : !progressReady ? (
+                        <span>Loading progress…</span>
+                      ) : (
+                        <span>Not yet learned</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-                  <button onClick={() => setOpenText(isOpen ? null : textKey)}
+                  <button type="button" onClick={() => setOpenText(isOpen ? null : textKey)}
+                    aria-expanded={isOpen} aria-controls={textId}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer hover:shadow-sm"
                     style={{ background: isOpen ? pal.bg : 'var(--bg)', borderColor: pal.border, color: pal.accent }}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,8 +625,19 @@ export default function BrowsePage() {
                   )}
                 </div>
               </div>
+              {failure && (
+                <div id={errorId} role="alert" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-3 py-2 text-xs"
+                  style={{ background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+                  <span>{failure.message}</span>
+                  <button type="button"
+                    onClick={() => void saveSelfStudy(unit.globalIndex, failure.desiredSelfStudy, label, selectedChapter, m)}
+                    className="min-h-11 font-semibold underline underline-offset-2">
+                    Retry
+                  </button>
+                </div>
+              )}
               {isOpen && (
-                <div className="mt-2">
+                <div id={textId} className="mt-2">
                   <MishnaText single={{ tractate: selectedTractate.tractate, chapter: selectedChapter, mishna: m }} compact />
                 </div>
               )}
@@ -335,6 +656,12 @@ export default function BrowsePage() {
   }
 
   const { title, sub } = pageHeading();
+  const currentBrowsePath = browsePath(
+    selectedSeder?.name,
+    selectedTractate?.tractate,
+    selectedChapter,
+    targetMishna,
+  );
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -379,12 +706,13 @@ export default function BrowsePage() {
       </div>
 
       <main className="px-6 lg:px-10 py-8" style={{ maxWidth: '1152px', margin: '0 auto' }}>
+        <div className="sr-only" aria-live="polite" aria-atomic="true">{progressAnnouncement}</div>
         {/* Progress status notice */}
         {progressNotice === 'signed-out' && (
           <div className="mb-6 flex items-center justify-between gap-4 px-5 py-3.5 rounded-xl border text-sm"
             style={{ background: 'rgba(201,169,110,0.07)', borderColor: 'rgba(201,169,110,0.25)', color: 'var(--fg)' }}>
             <span>You&apos;re browsing as a guest — sign in to see and track your progress.</span>
-            <Link href="/auth/login" className="font-semibold whitespace-nowrap" style={{ color: 'var(--navy)' }}>
+            <Link href={`/auth/login?next=${encodeURIComponent(currentBrowsePath)}`} className="font-semibold whitespace-nowrap" style={{ color: 'var(--navy)' }}>
               Sign in →
             </Link>
           </div>
@@ -400,9 +728,9 @@ export default function BrowsePage() {
         {level !== 'seder' && (
           <button
             onClick={() => {
-              if (level === 'tractate')  { setSelectedSeder(null);    setLevel('seder'); }
-              else if (level === 'chapter')   { setSelectedTractate(null); setLevel('tractate'); }
-              else if (level === 'mishna')    { setSelectedChapter(null);  setLevel('chapter'); }
+              if (level === 'tractate') navigateTo(null);
+              else if (level === 'chapter') navigateTo(selectedSeder);
+              else if (level === 'mishna') navigateTo(selectedSeder, selectedTractate);
             }}
             className="mb-6 flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-all cursor-pointer hover:shadow-sm"
             style={{ color: 'var(--muted)', borderColor: 'var(--border)', background: 'var(--surface)' }}>

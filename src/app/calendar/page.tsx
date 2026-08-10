@@ -8,6 +8,7 @@ import {
   formatDateShort,
   TOTAL_CYCLE_DAYS,
 } from '@/lib/calendar';
+import type { MishnaReference } from '@/lib/mishna-data';
 import Link from 'next/link';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -20,6 +21,12 @@ interface CalendarDay {
   isToday: boolean;
   isPast: boolean;
   isFuture: boolean;
+}
+
+function browseHrefForMishnayot(mishnayot: MishnaReference[]): string {
+  const first = mishnayot[0];
+  if (!first) return '/browse';
+  return `/browse?seder=${encodeURIComponent(first.seder)}&tractate=${encodeURIComponent(first.tractate)}&chapter=${first.chapter}&mishna=${first.mishna}`;
 }
 
 function buildMonthGrid(year: number, month: number): CalendarDay[] {
@@ -78,6 +85,7 @@ export default function CalendarPage() {
   const todayDayNum = getDayNumber(today);
   const todayMishnayot = getMishnayotForDay(todayDayNum);
   const todayLabel = getMishnaPairLabel(todayMishnayot);
+  const todayHref = browseHrefForMishnayot(todayMishnayot);
 
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
@@ -87,11 +95,6 @@ export default function CalendarPage() {
     if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
     else setViewMonth(m => m + 1);
   }
-  function goToToday() {
-    setViewYear(now.getFullYear());
-    setViewMonth(now.getMonth());
-  }
-
   // Search by date
   function handleSearch() {
     if (!searchDate) return;
@@ -150,8 +153,8 @@ export default function CalendarPage() {
               {today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          <Link href="/learn" className="btn-gold px-6 py-3 rounded-xl text-sm flex-shrink-0">
-            Listen Today&apos;s Lesson
+          <Link href={todayHref} className="btn-gold px-6 py-3 rounded-xl text-sm flex-shrink-0">
+            Open Today&apos;s Learning
           </Link>
         </div>
       </div>
@@ -171,9 +174,6 @@ export default function CalendarPage() {
                 <h2 className="text-lg font-semibold" style={{ color: 'var(--fg)' }}>
                   {MONTHS[viewMonth]} {viewYear}
                 </h2>
-                <button onClick={goToToday} className="text-xs hover:underline mt-0.5 cursor-pointer" style={{ color: 'var(--gold-dark)' }}>
-                  Jump to Today
-                </button>
               </div>
               <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-black/5 transition-colors cursor-pointer" style={{ color: 'var(--muted)' }}
                 onMouseOver={e => (e.currentTarget.style.color = 'var(--navy)')}
@@ -238,10 +238,10 @@ export default function CalendarPage() {
               </p>
               <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>Cycle Day {selectedDay.dayNumber}</p>
               <Link
-                href="/learn"
+                href={browseHrefForMishnayot(getMishnayotForDay(selectedDay.dayNumber))}
                 className="btn-gold w-full py-2.5 rounded-lg text-sm text-center block"
               >
-                Listen to This Lesson
+                Open This Learning
               </Link>
             </div>
           )}

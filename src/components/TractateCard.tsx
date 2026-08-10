@@ -58,7 +58,7 @@ export default function TractateCard({
               {isCurrentTractate && (
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-medium"
                   style={{ background: 'rgba(201,169,110,0.15)', color: 'var(--gold-dark)' }}>
-                  Current
+                  Next
                 </span>
               )}
             </div>
@@ -80,7 +80,7 @@ export default function TractateCard({
 
         {isCurrentTractate && currentChapter && currentMishna && (
           <p className="text-xs mt-2" style={{ color: 'var(--gold-dark)' }}>
-            Currently on Chapter {currentChapter}, Mishna {currentMishna}
+            Next unlearned: Chapter {currentChapter}, Mishna {currentMishna}
           </p>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchMishnayotText } from '@/lib/sefaria';
 import { getMishnayotForDay, TOTAL_CYCLE_DAYS } from '@/lib/calendar';
-import type { MishnaReference } from '@/lib/mishna-data';
+import { ALL_MISHNAYOT, type MishnaReference } from '@/lib/mishna-data';
 
 export const runtime = 'edge';
 
@@ -21,8 +21,18 @@ export async function GET(request: NextRequest) {
 
   const day = searchParams.get('day');
   const tractate = searchParams.get('tractate');
+  const indices = searchParams.get('indices');
 
-  if (day) {
+  if (indices) {
+    const parsed = [...new Set(indices.split(',').map(value => Number(value)))];
+    if (
+      parsed.length >= 1 &&
+      parsed.length <= 10 &&
+      parsed.every(index => Number.isInteger(index) && index >= 1 && index <= ALL_MISHNAYOT.length)
+    ) {
+      refs = parsed.map(index => ALL_MISHNAYOT[index - 1]);
+    }
+  } else if (day) {
     const n = parseInt(day, 10);
     // Range-check so a junk day returns 400 rather than a silently-clamped day.
     if (Number.isInteger(n) && n >= 1 && n <= TOTAL_CYCLE_DAYS) refs = getMishnayotForDay(n);
@@ -35,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!refs.length) {
-    return NextResponse.json({ error: 'Provide ?day=N or ?tractate=&chapter=&mishna=' }, { status: 400 });
+    return NextResponse.json({ error: 'Provide valid ?indices=, ?day=N, or ?tractate=&chapter=&mishna=' }, { status: 400 });
   }
 
   try {

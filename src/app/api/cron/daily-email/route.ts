@@ -70,12 +70,30 @@ export async function POST(request: NextRequest) {
   // Get today's info
   const { label, mishnayot, dayNumber, dateLabel } = getTodaySummary();
 
-  // Find matching episode from DB
-  const { data: episode } = await supabase
-    .from('mishna_episodes')
-    .select('*')
-    .eq('mishna_day_number', dayNumber)
-    .single();
+  // Find the episode mapped to today's exact Mishnayot. Publication-derived
+  // day numbers are metadata and are not reliable content identity.
+  const todayIndices = mishnayot.map(ref => ref.globalIndex);
+  const { data: todayMappings } = await supabase
+    .from('mishna_episode_units')
+    .select('episode_id, global_index')
+    .in('global_index', todayIndices);
+  const episodeCounts = new Map<string, number>();
+  for (const mapping of todayMappings ?? []) {
+    episodeCounts.set(mapping.episode_id, (episodeCounts.get(mapping.episode_id) ?? 0) + 1);
+  }
+  const matchingEpisodeIds = [...episodeCounts.entries()]
+    .filter(([, count]) => count === todayIndices.length)
+    .map(([episodeId]) => episodeId);
+  const { data: episode } = matchingEpisodeIds.length
+    ? await supabase
+        .from('mishna_episodes')
+        .select('*')
+        .in('id', matchingEpisodeIds)
+        .order('published_at', { ascending: false })
+        .order('id', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://mishna-yomi.com';
   const listenUrl = episode
@@ -156,10 +174,9 @@ export async function POST(request: NextRequest) {
     try {
       // Get user's completion count
       const { count } = await supabase
-        .from('mishna_progress')
+        .from('mishna_canonical_progress')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('completed', true);
+        .eq('user_id', user.id);
 
       const unsubscribeUrl = `${siteUrl}/settings`;
 
