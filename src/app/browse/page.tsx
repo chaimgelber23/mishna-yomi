@@ -56,9 +56,20 @@ export default function BrowsePage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedTractate) return;
-    fetch(`/api/episodes?tractate=${encodeURIComponent(selectedTractate.tractate)}`)
-      .then(r => r.json()).then(d => setEpisodes(d.episodes ?? [])).catch(() => {});
+    if (!selectedTractate) { setEpisodes([]); return; }
+
+    const controller = new AbortController();
+    setEpisodes([]);
+    fetch(`/api/episodes?tractate=${encodeURIComponent(selectedTractate.tractate)}`, {
+      signal: controller.signal,
+    })
+      .then(r => r.json())
+      .then(d => setEpisodes(d.episodes ?? []))
+      .catch(error => {
+        if (error instanceof Error && error.name !== 'AbortError') setEpisodes([]);
+      });
+
+    return () => controller.abort();
   }, [selectedTractate]);
 
   useEffect(() => {
@@ -104,8 +115,10 @@ export default function BrowsePage() {
 
   function episodeForMishna(ch: number, m: number) {
     return episodes.find(ep =>
-      (ep.chapter_from === ch && ep.mishna_from === m) ||
-      (ep.chapter_to === ch && ep.mishna_to === m)
+      ep.tractate === selectedTractate?.tractate && (
+        (ep.chapter_from === ch && ep.mishna_from === m) ||
+        (ep.chapter_to === ch && ep.mishna_to === m)
+      )
     );
   }
 
@@ -256,12 +269,12 @@ export default function BrowsePage() {
           return (
             <div key={m}>
               <div
-                className="flex items-center justify-between p-4 rounded-xl border transition-all duration-200"
+                className="flex flex-col items-stretch gap-3 rounded-xl border p-3 transition-all duration-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4"
                 style={{
                   background: done ? 'rgba(6,95,70,0.04)' : 'rgba(255,255,255,0.7)',
                   borderColor: done ? 'rgba(6,95,70,0.18)' : 'var(--border)',
                 }}>
-                <div className="flex items-center gap-4">
+                <div className="flex min-w-0 items-center gap-4">
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 border"
                     style={{
                       background: done ? '#ECFDF5' : 'var(--bg)',
@@ -279,9 +292,9 @@ export default function BrowsePage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
                   <button onClick={() => setOpenText(isOpen ? null : textKey)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 cursor-pointer hover:shadow-sm"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer hover:shadow-sm"
                     style={{ background: isOpen ? pal.bg : 'var(--bg)', borderColor: pal.border, color: pal.accent }}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -290,7 +303,7 @@ export default function BrowsePage() {
                   </button>
                   {ep ? (
                     <Link href={`/learn?episode=${ep.id}`}
-                      className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 cursor-pointer hover:shadow-sm"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer hover:shadow-sm"
                       style={{ background: pal.light, borderColor: pal.border, color: pal.accent }}>
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                       Listen
@@ -330,7 +343,7 @@ export default function BrowsePage() {
       <div className="border-b" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
         <div className="px-6 lg:px-10 py-8" style={{ maxWidth: '1152px', margin: '0 auto' }}>
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 mb-5 text-sm" style={{ color: 'var(--muted)' }}>
+          <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-sm" style={{ color: 'var(--muted)' }}>
             <Link href="/" className="transition-colors hover:text-[var(--navy)]" style={{ color: 'var(--muted)' }}>Home</Link>
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
             {crumbs.map((crumb, i) => (

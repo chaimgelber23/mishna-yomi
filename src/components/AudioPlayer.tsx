@@ -11,24 +11,43 @@ interface Episode {
 }
 
 interface AudioPlayerProps {
-  episode: Episode; onComplete?: () => void; onPositionChange?: (s: number) => void;
+  episode: Episode;
+  onComplete?: (positionSeconds: number) => boolean | void | Promise<boolean | void>;
+  onPositionChange?: (s: number) => void | Promise<void>;
   onPrev?: () => void; onNext?: () => void;
-  hasPrev?: boolean; hasNext?: boolean; initialPosition?: number;
+  hasPrev?: boolean; hasNext?: boolean; initialPosition?: number; initialCompleted?: boolean;
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
-export default function AudioPlayer({ episode, onComplete, onPositionChange, onPrev, onNext, hasPrev = false, hasNext = false, initialPosition = 0 }: AudioPlayerProps) {
+export default function AudioPlayer({ episode, onComplete, onPositionChange, onPrev, onNext, hasPrev = false, hasNext = false, initialPosition = 0, initialCompleted = false }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(initialPosition);
   const [duration, setDuration] = useState(episode.durationSeconds || 0);
   const [speedIdx, setSpeedIdx] = useState(1);
-  const [completed, setCompleted] = useState(false);
+  const [completed, setCompleted] = useState(initialCompleted);
+  const [completing, setCompleting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const completionPending = useRef(initialCompleted);
   const key = `mishna-pos-${episode.id}`;
+
+  function clearPendingSave() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+  }
+
+  useEffect(() => {
+    setCompleted(initialCompleted);
+    completionPending.current = initialCompleted;
+    if (initialCompleted) clearPendingSave();
+  }, [initialCompleted]);
+
+  useEffect(() => () => clearPendingSave(), []);
 
   useEffect(() => {
     const s = localStorage.getItem(key);
@@ -40,18 +59,47 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
 
   useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = SPEEDS[speedIdx]; }, [speedIdx]);
 
-  const save = useCallback((t: number) => { localStorage.setItem(key, String(Math.floor(t))); onPositionChange?.(Math.floor(t)); }, [key, onPositionChange]);
+  const save = useCallback((t: number) => {
+    if (completionPending.current) return;
+    localStorage.setItem(key, String(Math.floor(t)));
+    onPositionChange?.(Math.floor(t));
+  }, [key, onPositionChange]);
 
   function onTimeUpdate() {
     if (!audioRef.current) return;
     const t = audioRef.current.currentTime;
     setCurrentTime(t);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (completionPending.current) return;
+    clearPendingSave();
     saveTimer.current = setTimeout(() => save(t), 5000);
   }
 
   function onLoaded() { if (!audioRef.current) return; setDuration(audioRef.current.duration); setLoaded(true); }
-  function onEnded() { setPlaying(false); setCompleted(true); save(duration); onComplete?.(); }
+  async function markComplete() {
+    if (completionPending.current) return;
+
+    completionPending.current = true;
+    clearPendingSave();
+    setCompleting(true);
+
+    const finalPosition = Math.floor(duration > 0 ? duration : currentTime);
+    localStorage.setItem(key, String(finalPosition));
+
+    try {
+      const saved = await onComplete?.(finalPosition);
+      if (saved !== false) {
+        setCompleted(true);
+        setCompleting(false);
+        return;
+      }
+    } catch {
+      // The parent shows the save error and leaves this action retryable.
+    }
+
+    completionPending.current = false;
+    setCompleting(false);
+  }
+  function onEnded() { setPlaying(false); void markComplete(); }
   function togglePlay() {
     if (!audioRef.current) return;
     if (playing) { audioRef.current.pause(); save(currentTime); } else audioRef.current.play();
@@ -107,7 +155,7 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
       </div>
 
       {/* Body */}
-      <div className="px-6 py-6">
+      <div className="px-4 py-6 sm:px-6">
         {/* Progress bar */}
         <div className="mb-6">
           <div ref={progressRef} onClick={clickProgress}
@@ -125,54 +173,61 @@ export default function AudioPlayer({ episode, onComplete, onPositionChange, onP
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between">
-          <button onClick={() => setSpeedIdx(i => (i + 1) % SPEEDS.length)}
-            className="text-xs font-bold font-mono px-3 py-1.5 rounded-lg border transition-all cursor-pointer"
-            style={{ color: 'var(--muted)', background: 'var(--bg)', borderColor: 'var(--border)' }}>
-            {SPEEDS[speedIdx]}×
-          </button>
-
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full items-center justify-center gap-1.5 sm:w-auto sm:gap-3">
             <button onClick={onPrev} disabled={!hasPrev} aria-label="Previous"
-              className="p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+              className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
               style={{ color: 'var(--muted)' }}>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
             </button>
-            <button onClick={() => skip(-10)} aria-label="Back 10 seconds" className="relative p-2 rounded-lg transition-colors cursor-pointer hover:text-[var(--navy)]" style={{ color: 'var(--muted)' }}>
+            <button onClick={() => skip(-10)} aria-label="Back 10 seconds" className="relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors cursor-pointer hover:text-[var(--navy)]" style={{ color: 'var(--muted)' }}>
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
               <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold leading-none" style={{ transform: 'translateY(1px)' }}>10</span>
             </button>
 
             <button onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white transition-all cursor-pointer"
+              className="flex h-12 w-12 items-center justify-center rounded-full text-white transition-all cursor-pointer sm:h-14 sm:w-14"
               style={{ background: playing ? 'var(--navy)' : 'linear-gradient(135deg, var(--navy), #3D2E1A)', boxShadow: playing ? '0 4px 20px rgba(34,26,16,0.35)' : '0 2px 12px rgba(34,26,16,0.2)' }}>
               {playing
                 ? <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                 : <svg className="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>}
             </button>
 
-            <button onClick={() => skip(10)} aria-label="Forward 10 seconds" className="relative p-2 rounded-lg transition-colors cursor-pointer hover:text-[var(--navy)]" style={{ color: 'var(--muted)' }}>
+            <button onClick={() => skip(10)} aria-label="Forward 10 seconds" className="relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors cursor-pointer hover:text-[var(--navy)]" style={{ color: 'var(--muted)' }}>
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18 13c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6v4l5-5-5-5v4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8h-2z"/></svg>
               <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold leading-none" style={{ transform: 'translateY(1px)' }}>10</span>
             </button>
             <button onClick={onNext} disabled={!hasNext} aria-label="Next"
-              className="p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
+              className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
               style={{ color: 'var(--muted)' }}>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
             </button>
           </div>
 
-          {!completed
-            ? <button onClick={() => { setCompleted(true); onComplete?.(); }}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5"
-                style={{ color: 'var(--muted)', borderColor: 'var(--border)', background: 'transparent' }}>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
-                Done
-              </button>
-            : <span className="text-xs font-semibold flex items-center gap-1" style={{ color: '#065F46' }}>
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                Done
-              </span>}
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+            <button onClick={() => setSpeedIdx(i => (i + 1) % SPEEDS.length)}
+              aria-label="Change playback speed"
+              className="min-h-11 min-w-11 whitespace-nowrap rounded-lg border px-3 py-1.5 font-mono text-xs font-bold transition-all cursor-pointer"
+              style={{ color: 'var(--muted)', background: 'var(--bg)', borderColor: 'var(--border)' }}>
+              {SPEEDS[speedIdx]}×
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void markComplete()}
+              disabled={completed || completing}
+              aria-pressed={completed}
+              aria-label={completed ? 'Lesson completed' : completing ? 'Saving completion' : 'Mark lesson complete'}
+              className="inline-flex min-h-11 min-w-[7.25rem] items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:cursor-default"
+              style={completed
+                ? { color: '#065F46', borderColor: '#A7F3D0', background: '#ECFDF5' }
+                : { color: 'var(--muted)', borderColor: 'var(--border)', background: 'transparent' }}>
+              <svg className="h-3.5 w-3.5" fill={completed ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+              </svg>
+              {completed ? 'Completed' : completing ? 'Saving...' : 'Mark complete'}
+            </button>
+          </div>
         </div>
       </div>
 

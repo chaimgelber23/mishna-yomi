@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
@@ -11,6 +11,15 @@ export default function LoginPage() {
   const [sent, setSent]       = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get('error');
+    if (reason === 'link_expired') {
+      setError('That sign-in link has expired or was already used. Enter your email to request a fresh link.');
+    } else if (reason === 'callback_failed') {
+      setError('We could not finish signing you in. Please request a fresh link and try again.');
+    }
+  }, []);
 
   function getSupabase() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports

@@ -40,6 +40,8 @@ export default function LearnPage() {
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
   const [celebrateComplete, setCelebrateComplete] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const progressWriteQueue = useRef(new Map<string, Promise<void>>());
 
   // Lazy-initialize supabase client only on the browser
   const supabaseRef = useRef<SupabaseClient | null>(null);
@@ -74,11 +76,15 @@ export default function LearnPage() {
       if (eps) {
         setEpisodes(eps);
 
-        // Find today's episode
+        // A Browse "Listen" link names the exact episode to open. Honor that
+        // before falling back to today's lesson or the newest available one.
+        const requestedEpisodeId = new URLSearchParams(window.location.search).get('episode');
+        const requestedIdx = requestedEpisodeId
+          ? eps.findIndex(e => e.id === requestedEpisodeId)
+          : -1;
         const todayIdx = eps.findIndex(e => e.mishna_day_number === today.dayNumber);
-        if (todayIdx >= 0) {
-          setCurrentIdx(todayIdx);
-        }
+        const fallbackIdx = todayIdx >= 0 ? todayIdx : Math.max(0, eps.length - 1);
+        setCurrentIdx(requestedIdx >= 0 ? requestedIdx : fallbackIdx);
       }
 
       // Get progress if logged in
@@ -117,25 +123,53 @@ export default function LearnPage() {
     document.getElementById('player')?.scrollIntoView({ behavior: 'smooth' });
   }
 
-  const saveProgress = useCallback(async (episodeId: string, completed: boolean, positionSeconds: number) => {
-    if (!user) return;
+  const saveProgress = useCallback(async (episodeId: string, completed: boolean, positionSeconds: number): Promise<boolean> => {
+    if (!user) return true;
 
-    await fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ episodeId, completed, positionSeconds }),
+    const previousWrite = progressWriteQueue.current.get(episodeId) ?? Promise.resolve();
+    const write = previousWrite.then(async () => {
+      try {
+        const response = await fetch('/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ episodeId, completed, positionSeconds }),
+        });
+
+        if (!response.ok) {
+          setProgressError(response.status === 401
+            ? 'Your sign-in expired. Please sign in again to save progress.'
+            : 'We could not save your progress. Please try again.');
+          return false;
+        }
+
+        setProgress(prev => ({
+          ...prev,
+          [episodeId]: { completed, positionSeconds },
+        }));
+        setProgressError(null);
+        return true;
+      } catch {
+        setProgressError('We could not save your progress. Check your connection and try again.');
+        return false;
+      }
     });
 
-    setProgress(prev => ({
-      ...prev,
-      [episodeId]: { completed, positionSeconds },
-    }));
+    const queueTail = write.then(() => undefined, () => undefined);
+    progressWriteQueue.current.set(episodeId, queueTail);
+    void queueTail.then(() => {
+      if (progressWriteQueue.current.get(episodeId) === queueTail) {
+        progressWriteQueue.current.delete(episodeId);
+      }
+    });
+
+    return write;
   }, [user]);
 
-  async function handleComplete() {
+  async function handleComplete(positionSeconds: number): Promise<boolean> {
     const ep = episodes[currentIdx];
-    if (!ep) return;
-    await saveProgress(ep.id, true, ep.duration_seconds || 0);
+    if (!ep) return false;
+    const saved = await saveProgress(ep.id, true, ep.duration_seconds || positionSeconds);
+    if (!saved) return false;
 
     // Check if all done
     const completedIds = new Set(Object.entries(progress).filter(([, v]) => v.completed).map(([k]) => k));
@@ -143,6 +177,7 @@ export default function LearnPage() {
     if (completedIds.size >= episodes.length && episodes.length > 0) {
       setCelebrateComplete(true);
     }
+    return true;
   }
 
   async function handlePositionChange(seconds: number) {
@@ -155,6 +190,8 @@ export default function LearnPage() {
   const currentEp = episodes[currentIdx];
   const completedCount = Object.values(progress).filter(p => p.completed).length;
   const totalEpisodes = episodes.length;
+
+  useEffect(() => { setProgressError(null); }, [currentEp?.id]);
 
   // Filter episodes
   const filteredEpisodes = episodes.filter(ep => {
@@ -250,7 +287,7 @@ export default function LearnPage() {
           )}
         </div>
 
-        {/* Resume + Today buttons */}
+        {/* Resume + sign-in actions */}
         <div className="flex flex-wrap gap-3 mt-4">
           <button
             id="resume"
@@ -258,15 +295,6 @@ export default function LearnPage() {
             className="btn-gold px-5 py-2.5 rounded-lg text-sm"
           >
             Pick Up Where I Left Off
-          </button>
-          <button
-            onClick={() => {
-              const idx = episodes.findIndex(e => e.mishna_day_number === today.dayNumber);
-              if (idx >= 0) setCurrentIdx(idx);
-            }}
-            className="btn-ghost px-5 py-2.5 rounded-lg text-sm"
-          >
-            Jump to Today
           </button>
           {!user && (
             <Link
@@ -303,8 +331,15 @@ export default function LearnPage() {
                 hasPrev={currentIdx > 0}
                 hasNext={currentIdx < episodes.length - 1}
                 initialPosition={progress[currentEp.id]?.positionSeconds || 0}
+                initialCompleted={progress[currentEp.id]?.completed || false}
                 key={currentEp.id}
               />
+
+              {progressError && (
+                <div role="alert" className="rounded-xl border px-4 py-3 text-sm" style={{ background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+                  {progressError}
+                </div>
+              )}
 
               {/* No auth notice */}
               {!user && (
