@@ -1,4 +1,10 @@
-import { TOTAL_MISHNAYOT } from './mishna-data';
+import {
+  ALL_MISHNAYOT,
+  MISHNA_STRUCTURE,
+  TOTAL_MISHNAYOT,
+} from './mishna-data';
+
+export const MAX_BULK_MISHNAYOT = 254;
 
 export interface EpisodeMishnaMapping {
   global_index: number;
@@ -51,6 +57,18 @@ export interface EpisodeProgressMutation {
   positionSeconds?: number;
   hasCompletion: boolean;
   completed?: boolean;
+}
+
+export interface MishnaBulkProgressMutation {
+  scope: 'chapter' | 'tractate';
+  tractate: string;
+  chapter?: number;
+}
+
+export interface ResolvedMishnaBulkScope extends MishnaBulkProgressMutation {
+  globalIndices: number[];
+  startGlobalIndex: number;
+  endGlobalIndex: number;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -126,6 +144,109 @@ export function parseMishnaProgressMutation(body: unknown):
     value: {
       globalIndex: body.globalIndex,
       selfStudied: body.selfStudied,
+    },
+  };
+}
+
+export function parseMishnaBulkProgressMutation(body: unknown):
+  | { value: MishnaBulkProgressMutation }
+  | { error: string } {
+  if (!isObject(body)) return { error: 'Request body must be an object' };
+
+  if (
+    Object.prototype.hasOwnProperty.call(body, 'globalIndex')
+    || Object.prototype.hasOwnProperty.call(body, 'globalIndices')
+    || Object.prototype.hasOwnProperty.call(body, 'startGlobalIndex')
+    || Object.prototype.hasOwnProperty.call(body, 'endGlobalIndex')
+  ) {
+    return { error: 'Mishnah indices are resolved from the requested scope' };
+  }
+
+  if (body.scope !== 'chapter' && body.scope !== 'tractate') {
+    return { error: 'scope must be chapter or tractate' };
+  }
+
+  const allowedKeys = new Set(['scope', 'tractate', 'chapter']);
+  const unexpectedKey = Object.keys(body).find(key => !allowedKeys.has(key));
+  if (unexpectedKey) return { error: `Unexpected field: ${unexpectedKey}` };
+
+  if (typeof body.tractate !== 'string' || body.tractate.trim() === '') {
+    return { error: 'tractate required' };
+  }
+
+  if (body.scope === 'chapter') {
+    if (
+      typeof body.chapter !== 'number'
+      || !Number.isInteger(body.chapter)
+      || body.chapter < 1
+    ) {
+      return { error: 'chapter must be a positive integer' };
+    }
+    return {
+      value: {
+        scope: 'chapter',
+        tractate: body.tractate.trim(),
+        chapter: body.chapter,
+      },
+    };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, 'chapter')) {
+    return { error: 'chapter is only allowed for chapter scope' };
+  }
+
+  return {
+    value: {
+      scope: 'tractate',
+      tractate: body.tractate.trim(),
+    },
+  };
+}
+
+export function resolveMishnaBulkScope(mutation: MishnaBulkProgressMutation):
+  | { value: ResolvedMishnaBulkScope }
+  | { error: string } {
+  const tractate = MISHNA_STRUCTURE.find(
+    candidate => candidate.tractate.toLowerCase() === mutation.tractate.toLowerCase(),
+  );
+  if (!tractate) return { error: 'Unknown tractate' };
+
+  if (
+    mutation.scope === 'chapter'
+    && (
+      mutation.chapter === undefined
+      || mutation.chapter > tractate.chapters.length
+    )
+  ) {
+    return { error: 'Chapter is outside this tractate' };
+  }
+
+  const globalIndices = ALL_MISHNAYOT
+    .filter(unit => (
+      unit.tractate === tractate.tractate
+      && (mutation.scope === 'tractate' || unit.chapter === mutation.chapter)
+    ))
+    .map(unit => unit.globalIndex);
+
+  const startGlobalIndex = globalIndices[0];
+  const endGlobalIndex = globalIndices[globalIndices.length - 1];
+  if (
+    !startGlobalIndex
+    || !endGlobalIndex
+    || globalIndices.length > MAX_BULK_MISHNAYOT
+    || endGlobalIndex - startGlobalIndex + 1 !== globalIndices.length
+  ) {
+    return { error: 'Mishnah scope could not be resolved safely' };
+  }
+
+  return {
+    value: {
+      scope: mutation.scope,
+      tractate: tractate.tractate,
+      chapter: mutation.scope === 'chapter' ? mutation.chapter : undefined,
+      globalIndices,
+      startGlobalIndex,
+      endGlobalIndex,
     },
   };
 }

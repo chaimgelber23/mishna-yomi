@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { MISHNA_STRUCTURE } from '../src/lib/mishna-data';
 import {
+  MAX_BULK_MISHNAYOT,
   parseEpisodeProgressMutation,
+  parseMishnaBulkProgressMutation,
   parseMishnaProgressMutation,
+  resolveMishnaBulkScope,
 } from '../src/lib/progress';
 
 function parseEpisode(body: unknown) {
@@ -66,5 +70,75 @@ test('rejects invalid episode and Mishnah mutations', () => {
   assert.deepEqual(
     parseMishnaProgressMutation({ globalIndex: 4192, selfStudied: false }),
     { value: { globalIndex: 4192, selfStudied: false } }
+  );
+});
+
+test('resolves perek and masechta bulk scopes on the server', () => {
+  const perek = resolveMishnaBulkScope({
+    scope: 'chapter',
+    tractate: 'Berakhot',
+    chapter: 1,
+  });
+  assert.ok('value' in perek);
+  assert.deepEqual(perek.value.globalIndices, [1, 2, 3, 4, 5]);
+
+  const masechta = resolveMishnaBulkScope({
+    scope: 'tractate',
+    tractate: 'berakhot',
+  });
+  assert.ok('value' in masechta);
+  assert.equal(masechta.value.globalIndices.length, 57);
+  assert.equal(masechta.value.startGlobalIndex, 1);
+  assert.equal(masechta.value.endGlobalIndex, 57);
+
+  const kelim = resolveMishnaBulkScope({ scope: 'tractate', tractate: 'Kelim' });
+  assert.ok('value' in kelim);
+  assert.equal(kelim.value.globalIndices.length, 254);
+  assert.equal(kelim.value.startGlobalIndex, 3190);
+  assert.equal(kelim.value.endGlobalIndex, 3443);
+  assert.equal(kelim.value.globalIndices.length, MAX_BULK_MISHNAYOT);
+  assert.equal(
+    Math.max(...MISHNA_STRUCTURE.map(tractate => tractate.totalMishnayot)),
+    MAX_BULK_MISHNAYOT,
+  );
+
+  const largestPerek = resolveMishnaBulkScope({
+    scope: 'chapter',
+    tractate: 'Avot',
+    chapter: 5,
+  });
+  assert.ok('value' in largestPerek);
+  assert.equal(largestPerek.value.globalIndices.length, 23);
+});
+
+test('bulk scope input fails closed and never accepts client-supplied indices', () => {
+  assert.deepEqual(
+    parseMishnaBulkProgressMutation({
+      scope: 'chapter',
+      tractate: 'Berakhot',
+      chapter: 1,
+      globalIndices: [4192],
+    }),
+    { error: 'Mishnah indices are resolved from the requested scope' },
+  );
+  assert.deepEqual(
+    parseMishnaBulkProgressMutation({ scope: 'tractate', tractate: 'Berakhot', chapter: 1 }),
+    { error: 'chapter is only allowed for chapter scope' },
+  );
+  assert.deepEqual(
+    parseMishnaBulkProgressMutation({
+      scope: 'tractate',
+      tractate: 'Berakhot',
+      selfStudied: false,
+    }),
+    { error: 'Unexpected field: selfStudied' },
+  );
+  assert.deepEqual(
+    resolveMishnaBulkScope({ scope: 'chapter', tractate: 'Berakhot', chapter: 10 }),
+    { error: 'Chapter is outside this tractate' },
+  );
+  assert.deepEqual(
+    resolveMishnaBulkScope({ scope: 'tractate', tractate: 'Not a tractate' }),
+    { error: 'Unknown tractate' },
   );
 });

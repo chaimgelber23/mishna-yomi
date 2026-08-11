@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import MishnaText from '@/components/MishnaText';
 import {
@@ -40,9 +40,36 @@ interface SaveFailure {
   message: string;
 }
 
+interface BulkStudyScope {
+  key: string;
+  kind: 'chapter' | 'tractate';
+  tractate: string;
+  chapter?: number;
+  label: string;
+  globalIndices: number[];
+}
+
+interface BulkSaveFailure {
+  scope: BulkStudyScope;
+  message: string;
+}
+
 const MISHNA_BY_REFERENCE = new Map(
   ALL_MISHNAYOT.map(unit => [`${unit.tractate}-${unit.chapter}-${unit.mishna}`, unit]),
 );
+
+const MISHNA_INDICES_BY_TRACTATE = new Map<string, number[]>();
+const MISHNA_INDICES_BY_CHAPTER = new Map<string, number[]>();
+for (const unit of ALL_MISHNAYOT) {
+  const tractateIndices = MISHNA_INDICES_BY_TRACTATE.get(unit.tractate) ?? [];
+  tractateIndices.push(unit.globalIndex);
+  MISHNA_INDICES_BY_TRACTATE.set(unit.tractate, tractateIndices);
+
+  const chapterKey = `${unit.tractate}-${unit.chapter}`;
+  const chapterIndices = MISHNA_INDICES_BY_CHAPTER.get(chapterKey) ?? [];
+  chapterIndices.push(unit.globalIndex);
+  MISHNA_INDICES_BY_CHAPTER.set(chapterKey, chapterIndices);
+}
 
 function mishnaForReference(tractate: string, chapter: number, mishna: number) {
   return MISHNA_BY_REFERENCE.get(`${tractate}-${chapter}-${mishna}`);
@@ -63,6 +90,29 @@ function learningSources(progress?: MishnaProgressRecord) {
   if (progress?.learned_by_listening || progress?.listened_at) sources.push('Audio');
   if (progress?.learned_by_cycle || progress?.cycle_completed_at) sources.push('My Cycle');
   return sources;
+}
+
+function withSelfStudy(
+  globalIndex: number,
+  previous: MishnaProgressRecord | undefined,
+  selfStudied: boolean,
+  timestamp: string,
+): MishnaProgressRecord {
+  const hasOtherSource = Boolean(previous?.listened_at || previous?.cycle_completed_at);
+  const learnedAfterChange = selfStudied || hasOtherSource;
+  return {
+    global_index: globalIndex,
+    listened_at: previous?.listened_at ?? null,
+    cycle_completed_at: previous?.cycle_completed_at ?? null,
+    self_studied_at: selfStudied
+      ? previous?.self_studied_at ?? timestamp
+      : null,
+    learned_at: learnedAfterChange ? previous?.learned_at ?? timestamp : null,
+    learned_by_listening: Boolean(previous?.listened_at),
+    learned_by_self_study: selfStudied,
+    learned_by_cycle: Boolean(previous?.cycle_completed_at),
+    learned: learnedAfterChange,
+  };
 }
 
 function browsePath(seder?: string, tractate?: string, chapter?: number | null, mishna?: number | null) {
@@ -99,6 +149,7 @@ function getPalette(sederName: string) {
 }
 
 export default function BrowsePage() {
+  const mutationLock = useRef(false);
   const [level, setLevel]                       = useState<Level>('seder');
   const [selectedSeder, setSelectedSeder]       = useState<SederInfo | null>(null);
   const [selectedTractate, setSelectedTractate] = useState<TractateInfo | null>(null);
@@ -110,6 +161,9 @@ export default function BrowsePage() {
   const [progressNotice, setProgressNotice]     = useState<'signed-out' | 'error' | null>(null);
   const [pendingMishnayot, setPendingMishnayot] = useState<Set<number>>(new Set());
   const [saveFailures, setSaveFailures]         = useState<Record<number, SaveFailure>>({});
+  const [bulkConfirmation, setBulkConfirmation] = useState<BulkStudyScope | null>(null);
+  const [pendingBulkKey, setPendingBulkKey]     = useState<string | null>(null);
+  const [bulkFailure, setBulkFailure]           = useState<BulkSaveFailure | null>(null);
   const [progressAnnouncement, setProgressAnnouncement] = useState('');
   const [openText, setOpenText]                 = useState<string | null>(null);
 
@@ -232,6 +286,8 @@ export default function BrowsePage() {
     setSelectedChapter(chapter);
     setTargetMishna(mishna);
     setOpenText(null);
+    setBulkConfirmation(null);
+    setBulkFailure(null);
     setLevel(chapter !== null ? 'mishna' : tractate ? 'chapter' : seder ? 'tractate' : 'seder');
     window.history.replaceState(
       null,
@@ -275,6 +331,128 @@ export default function BrowsePage() {
     window.location.assign(`/auth/login?next=${encodeURIComponent(next)}`);
   }
 
+  function signInForCurrentView() {
+    const next = browsePath(
+      selectedSeder?.name,
+      selectedTractate?.tractate,
+      selectedChapter,
+      targetMishna,
+    );
+    window.location.assign(`/auth/login?next=${encodeURIComponent(next)}`);
+  }
+
+  async function saveBulkSelfStudy(scope: BulkStudyScope) {
+    if (mutationLock.current || pendingBulkKey || pendingMishnayot.size > 0) return;
+    setBulkConfirmation(null);
+
+    if (progressNotice === 'signed-out') {
+      signInForCurrentView();
+      return;
+    }
+    if (!progressReady || progressNotice === 'error') return;
+
+    const targetIndices = scope.globalIndices.filter(
+      globalIndex => !mishnaProgress[globalIndex]?.self_studied_at,
+    );
+    if (targetIndices.length === 0) {
+      setProgressAnnouncement(`All Mishnayot in ${scope.label} are already marked as self-studied.`);
+      return;
+    }
+
+    const previous = new Map(
+      targetIndices.map(globalIndex => [globalIndex, mishnaProgress[globalIndex]]),
+    );
+    const timestamp = new Date().toISOString();
+
+    mutationLock.current = true;
+    setPendingBulkKey(scope.key);
+    setBulkFailure(null);
+    setPendingMishnayot(current => {
+      const next = new Set(current);
+      for (const globalIndex of targetIndices) next.add(globalIndex);
+      return next;
+    });
+    setSaveFailures(current => {
+      const next = { ...current };
+      for (const globalIndex of targetIndices) delete next[globalIndex];
+      return next;
+    });
+    setMishnaProgress(current => {
+      const next = { ...current };
+      for (const globalIndex of targetIndices) {
+        next[globalIndex] = withSelfStudy(
+          globalIndex,
+          current[globalIndex],
+          true,
+          timestamp,
+        );
+      }
+      return next;
+    });
+
+    function restorePreviousProgress() {
+      setMishnaProgress(current => {
+        const next = { ...current };
+        for (const globalIndex of targetIndices) {
+          const item = previous.get(globalIndex);
+          if (item) next[globalIndex] = item;
+          else delete next[globalIndex];
+        }
+        return next;
+      });
+    }
+
+    try {
+      const response = await fetch('/api/progress/mishna/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scope: scope.kind,
+          tractate: scope.tractate,
+          ...(scope.chapter === undefined ? {} : { chapter: scope.chapter }),
+        }),
+      });
+
+      if (response.status === 401) {
+        restorePreviousProgress();
+        setProgressNotice('signed-out');
+        signInForCurrentView();
+        return;
+      }
+      if (!response.ok) throw new Error('Bulk self-study save failed');
+
+      const data = await response.json() as {
+        mishnaProgress?: MishnaProgressRecord[];
+      };
+      if (data.mishnaProgress) {
+        setMishnaProgress(current => {
+          const next = { ...current };
+          for (const item of data.mishnaProgress ?? []) {
+            next[item.global_index] = item;
+          }
+          return next;
+        });
+      }
+      setProgressAnnouncement(
+        `All ${scope.globalIndices.length} Mishnayot in ${scope.label} are now marked as self-studied.`,
+      );
+    } catch {
+      restorePreviousProgress();
+      setBulkFailure({
+        scope,
+        message: `We couldn't mark ${scope.label}. Your previous progress is still shown.`,
+      });
+    } finally {
+      mutationLock.current = false;
+      setPendingBulkKey(null);
+      setPendingMishnayot(current => {
+        const next = new Set(current);
+        for (const globalIndex of targetIndices) next.delete(globalIndex);
+        return next;
+      });
+    }
+  }
+
   async function saveSelfStudy(
     globalIndex: number,
     desiredSelfStudy: boolean,
@@ -282,30 +460,23 @@ export default function BrowsePage() {
     chapter: number,
     mishna: number,
   ) {
-    if (pendingMishnayot.has(globalIndex)) return;
+    if (mutationLock.current || pendingMishnayot.has(globalIndex) || pendingBulkKey) return;
     if (progressNotice === 'signed-out') {
       signInForMishna(chapter, mishna);
       return;
     }
 
     const previous = mishnaProgress[globalIndex];
-    const now = new Date().toISOString();
-    const hasOtherSource = Boolean(previous?.listened_at || previous?.cycle_completed_at);
-    const learnedAfterChange = desiredSelfStudy || hasOtherSource;
-    const optimistic: MishnaProgressRecord = {
-      global_index: globalIndex,
-      listened_at: previous?.listened_at ?? null,
-      cycle_completed_at: previous?.cycle_completed_at ?? null,
-      self_studied_at: desiredSelfStudy
-        ? previous?.self_studied_at ?? now
-        : null,
-      learned_at: learnedAfterChange ? previous?.learned_at ?? now : null,
-      learned_by_listening: Boolean(previous?.listened_at),
-      learned_by_self_study: desiredSelfStudy,
-      learned_by_cycle: Boolean(previous?.cycle_completed_at),
-      learned: learnedAfterChange,
-    };
+    const optimistic = withSelfStudy(
+      globalIndex,
+      previous,
+      desiredSelfStudy,
+      new Date().toISOString(),
+    );
 
+    mutationLock.current = true;
+    setBulkConfirmation(null);
+    setBulkFailure(null);
     setPendingMishnayot(current => new Set(current).add(globalIndex));
     setSaveFailures(current => {
       const next = { ...current };
@@ -370,6 +541,7 @@ export default function BrowsePage() {
         },
       }));
     } finally {
+      mutationLock.current = false;
       setPendingMishnayot(current => {
         const next = new Set(current);
         next.delete(globalIndex);
@@ -379,6 +551,115 @@ export default function BrowsePage() {
   }
 
   const pal = selectedSeder ? getPalette(selectedSeder.name) : SEDER_PALETTES[0];
+
+  function renderBulkStudyControl(scope: BulkStudyScope, confirmBeforeSaving: boolean) {
+    const total = scope.globalIndices.length;
+    const marked = scope.globalIndices.filter(
+      globalIndex => Boolean(mishnaProgress[globalIndex]?.self_studied_at),
+    ).length;
+    const remaining = total - marked;
+    const pending = pendingBulkKey === scope.key;
+    const confirmationOpen = bulkConfirmation?.key === scope.key;
+    const failure = bulkFailure?.scope.key === scope.key ? bulkFailure : null;
+    const signedOut = progressNotice === 'signed-out';
+    const unavailable = !progressReady
+      || progressNotice === 'error'
+      || pendingBulkKey !== null
+      || pendingMishnayot.size > 0;
+    const scopeKind = scope.kind === 'chapter' ? 'perek' : 'masechta';
+    const confirmationId = `bulk-confirm-${scope.kind}-${scope.tractate
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')}-${scope.chapter ?? 'all'}`;
+
+    function requestSave() {
+      if (signedOut) {
+        signInForCurrentView();
+      } else if (confirmBeforeSaving) {
+        setBulkFailure(null);
+        setBulkConfirmation(scope);
+      } else {
+        void saveBulkSelfStudy(scope);
+      }
+    }
+
+    return (
+      <div className="rounded-xl border p-4 sm:p-5"
+        style={{ background: pal.bg, borderColor: pal.border }}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="font-semibold" style={{ color: 'var(--fg)' }}>{scope.label} self-study</div>
+            <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
+              {signedOut
+                ? 'Sign in to see and save your self-study progress.'
+                : `${marked} of ${total} marked as self-studied.`}
+            </p>
+            <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+              This only adds Self-study. Audio and My Cycle stay unchanged.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={requestSave}
+            disabled={remaining === 0 || unavailable}
+            aria-busy={pending}
+            aria-expanded={confirmBeforeSaving ? confirmationOpen : undefined}
+            aria-controls={confirmBeforeSaving ? confirmationId : undefined}
+            aria-label={remaining === 0
+              ? `All ${total} Mishnayot in ${scope.label} are marked as self-studied`
+              : signedOut
+                ? `Sign in to mark this ${scopeKind} as self-studied`
+                : `Mark ${remaining} remaining Mishnayot in ${scope.label} as self-studied`}
+            className="btn-gold inline-flex min-h-11 w-full flex-shrink-0 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto">
+            {pending
+              ? `Marking ${scopeKind}…`
+              : !progressReady
+                ? 'Loading progress…'
+              : remaining === 0
+                ? `All ${total} marked as self-studied`
+                : signedOut
+                  ? `Sign in to mark ${scopeKind}`
+                  : marked === 0
+                    ? `Mark whole ${scopeKind} (${total})`
+                    : `Mark remaining ${remaining}`}
+          </button>
+        </div>
+
+        {confirmationOpen && (
+          <div id={confirmationId} role="group" aria-labelledby={`${confirmationId}-title`}
+            className="mt-4 rounded-xl border bg-white/80 p-4">
+            <p id={`${confirmationId}-title`} className="text-sm font-medium" style={{ color: 'var(--fg)' }}>
+              Mark the remaining {remaining} Mishnayot in {scope.label} as self-studied?
+            </p>
+            <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+              You can still remove any individual self-study mark later.
+            </p>
+            <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setBulkConfirmation(null)}
+                className="min-h-11 rounded-xl border px-4 py-2 text-sm font-medium"
+                style={{ borderColor: 'var(--border)', color: 'var(--fg)' }}>
+                Cancel
+              </button>
+              <button type="button" onClick={() => void saveBulkSelfStudy(scope)}
+                className="btn-gold min-h-11 rounded-xl px-4 py-2 text-sm font-semibold">
+                Yes, mark {remaining}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {failure && (
+          <div role="alert" className="mt-4 flex flex-col gap-2 rounded-xl border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+            style={{ background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+            <span>{failure.message}</span>
+            <button type="button" onClick={() => void saveBulkSelfStudy(scope)}
+              className="min-h-11 flex-shrink-0 font-semibold underline underline-offset-2">
+              Retry
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // ── Seder grid ──
   function renderSederLevel() {
@@ -475,37 +756,47 @@ export default function BrowsePage() {
   // ── Chapter grid ──
   function renderChapterLevel() {
     if (!selectedTractate) return null;
+    const scope: BulkStudyScope = {
+      key: `tractate:${selectedTractate.tractate}`,
+      kind: 'tractate',
+      tractate: selectedTractate.tractate,
+      label: `Masechta ${selectedTractate.tractate}`,
+      globalIndices: MISHNA_INDICES_BY_TRACTATE.get(selectedTractate.tractate) ?? [],
+    };
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {selectedTractate.chapters.map((mishnaCount, idx) => {
-          const ch = idx + 1;
-          let done = 0;
-          for (let m = 1; m <= mishnaCount; m++)
-            if (isCompleted(selectedTractate.tractate, ch, m)) done++;
-          const pct = mishnaCount > 0 ? Math.round((done / mishnaCount) * 100) : 0;
-          return (
-            <button key={ch}
-              onClick={() => navigateTo(selectedSeder, selectedTractate, ch)}
-              className="group text-left p-5 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5"
-              style={{ background: pct === 100 ? 'rgba(6,95,70,0.05)' : pal.bg, borderColor: pct === 100 ? 'rgba(6,95,70,0.2)' : pal.border }}>
-              <div className="text-2xl font-bold mb-1" style={{ color: pct === 100 ? '#065F46' : pal.accent }}>
-                {ch}
-              </div>
-              <div className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
-                {mishnaCount} mishna{mishnaCount !== 1 ? 'yot' : 'h'}
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
-                <div className="h-full rounded-full transition-all"
-                  style={{ width: `${pct}%`, background: pct === 100 ? '#10B981' : pal.hex }} />
-              </div>
-              {pct === 100 && (
-                <div className="text-xs mt-1.5 font-medium" style={{ color: '#065F46' }}>
-                  ✓ Complete
+      <div className="space-y-4">
+        {renderBulkStudyControl(scope, true)}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {selectedTractate.chapters.map((mishnaCount, idx) => {
+            const ch = idx + 1;
+            let done = 0;
+            for (let m = 1; m <= mishnaCount; m++)
+              if (isCompleted(selectedTractate.tractate, ch, m)) done++;
+            const pct = mishnaCount > 0 ? Math.round((done / mishnaCount) * 100) : 0;
+            return (
+              <button key={ch}
+                onClick={() => navigateTo(selectedSeder, selectedTractate, ch)}
+                className="group text-left p-5 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+                style={{ background: pct === 100 ? 'rgba(6,95,70,0.05)' : pal.bg, borderColor: pct === 100 ? 'rgba(6,95,70,0.2)' : pal.border }}>
+                <div className="text-2xl font-bold mb-1" style={{ color: pct === 100 ? '#065F46' : pal.accent }}>
+                  {ch}
                 </div>
-              )}
-            </button>
-          );
-        })}
+                <div className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+                  {mishnaCount} mishna{mishnaCount !== 1 ? 'yot' : 'h'}
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                  <div className="h-full rounded-full transition-all"
+                    style={{ width: `${pct}%`, background: pct === 100 ? '#10B981' : pal.hex }} />
+                </div>
+                {pct === 100 && (
+                  <div className="text-xs mt-1.5 font-medium" style={{ color: '#065F46' }}>
+                    ✓ Complete
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -514,8 +805,19 @@ export default function BrowsePage() {
   function renderMishnaLevel() {
     if (!selectedTractate || selectedChapter === null) return null;
     const mishnaCount = selectedTractate.chapters[selectedChapter - 1];
+    const scope: BulkStudyScope = {
+      key: `chapter:${selectedTractate.tractate}:${selectedChapter}`,
+      kind: 'chapter',
+      tractate: selectedTractate.tractate,
+      chapter: selectedChapter,
+      label: `Perek ${selectedChapter} of ${selectedTractate.tractate}`,
+      globalIndices: MISHNA_INDICES_BY_CHAPTER.get(
+        `${selectedTractate.tractate}-${selectedChapter}`,
+      ) ?? [],
+    };
     return (
       <div className="space-y-2">
+        <div className="mb-4">{renderBulkStudyControl(scope, false)}</div>
         <p className="mb-4 rounded-xl border px-4 py-3 text-sm leading-relaxed"
           style={{ background: 'rgba(201,169,110,0.07)', borderColor: 'rgba(201,169,110,0.25)', color: 'var(--muted)' }}>
           Tap a Mishnah number to record self-study. Listening and completed My Cycle days update the same progress without double-counting.
@@ -530,6 +832,7 @@ export default function BrowsePage() {
           const done = isLearned(itemProgress);
           const sources = learningSources(itemProgress);
           const pending = pendingMishnayot.has(unit.globalIndex);
+          const mutationPending = pendingMishnayot.size > 0 || pendingBulkKey !== null;
           const failure = saveFailures[unit.globalIndex];
           const label = `${selectedTractate.tractate} ${selectedChapter}:${m}`;
           const textKey = `${selectedChapter}:${m}`;
@@ -550,7 +853,7 @@ export default function BrowsePage() {
                   <button
                     type="button"
                     onClick={() => void saveSelfStudy(unit.globalIndex, !selfStudied, label, selectedChapter, m)}
-                    disabled={!progressReady || pending}
+                    disabled={!progressReady || mutationPending}
                     aria-pressed={selfStudied}
                     aria-busy={pending}
                     aria-describedby={`${statusId}${failure ? ` ${errorId}` : ''}`}
