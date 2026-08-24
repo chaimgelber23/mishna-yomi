@@ -61,9 +61,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex flex-col items-center sm:items-end gap-3">
               <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2 text-sm" style={{ color: 'var(--muted)' }}>
                 {[
-                  { href: '/learn', label: 'Learn' },
+                  { href: '/learn', label: 'Audio' },
                   { href: '/cycles', label: 'My Cycle' },
-                  { href: '/browse', label: 'Browse' },
+                  { href: '/browse', label: 'Self-Study' },
                   { href: '/progress', label: 'Progress' },
                   { href: '/calendar', label: 'Calendar' },
                 ].map(({ href, label }) => (

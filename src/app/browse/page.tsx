@@ -7,6 +7,11 @@ import {
   ALL_MISHNAYOT, SEDARIM, SEDER_HEBREW, TRACTATE_HEBREW,
   type SederInfo, type TractateInfo,
 } from '@/lib/mishna-data';
+import {
+  readStudyResume,
+  resolveStudyResume,
+  writeStudyResume,
+} from '@/lib/study-resume';
 
 type Level = 'seder' | 'tractate' | 'chapter' | 'mishna';
 
@@ -131,6 +136,15 @@ function positiveInteger(value: string | null) {
   return parsed > 0 ? parsed : null;
 }
 
+function getBrowserStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 /* Six sedarim — muted earth tones, matching the homepage seder strip */
 const SEDER_PALETTES = [
   { bg: 'rgba(160,120,64,0.09)', border: 'rgba(160,120,64,0.26)', accent: '#856230', hex: '#A07840', light: 'rgba(160,120,64,0.12)' }, // brass
@@ -150,6 +164,8 @@ function getPalette(sederName: string) {
 
 export default function BrowsePage() {
   const mutationLock = useRef(false);
+  const explicitBrowseLocation = useRef(false);
+  const didResolveStudyResume = useRef(false);
   const [level, setLevel]                       = useState<Level>('seder');
   const [selectedSeder, setSelectedSeder]       = useState<SederInfo | null>(null);
   const [selectedTractate, setSelectedTractate] = useState<TractateInfo | null>(null);
@@ -191,6 +207,7 @@ export default function BrowsePage() {
     }
 
     if (!matchedSeder) return;
+    explicitBrowseLocation.current = true;
     setSelectedSeder(matchedSeder);
 
     if (!matchedTractate) {
@@ -210,6 +227,13 @@ export default function BrowsePage() {
     const requestedMishna = positiveInteger(params.get('mishna'));
     if (requestedMishna && requestedMishna <= matchedTractate.chapters[requestedChapter - 1]) {
       setTargetMishna(requestedMishna);
+      setOpenText(`${requestedChapter}:${requestedMishna}`);
+      const unit = mishnaForReference(
+        matchedTractate.tractate,
+        requestedChapter,
+        requestedMishna,
+      );
+      if (unit) writeStudyResume(getBrowserStorage(), unit.globalIndex);
     }
   }, []);
 
@@ -270,6 +294,24 @@ export default function BrowsePage() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (!progressReady || didResolveStudyResume.current) return;
+    didResolveStudyResume.current = true;
+    if (explicitBrowseLocation.current) return;
+
+    const storage = getBrowserStorage();
+    const selection = resolveStudyResume({
+      localPointer: readStudyResume(storage),
+      serverProgress: Object.values(mishnaProgress),
+    });
+    if (!selection) return;
+
+    openStudyMishna(selection.globalIndex, true);
+  // Initial resume runs once after progress/local state is available. Later
+  // self-study mutations must not move the learner unexpectedly.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressReady, mishnaProgress]);
+
   const crumbs: Crumb[] = [{ label: 'All Sedarim', level: 'seder' }];
   if (selectedSeder)    crumbs.push({ label: selectedSeder.name,         level: 'tractate' });
   if (selectedTractate) crumbs.push({ label: selectedTractate.tractate,  level: 'chapter' });
@@ -280,7 +322,9 @@ export default function BrowsePage() {
     tractate: TractateInfo | null = null,
     chapter: number | null = null,
     mishna: number | null = null,
+    cancelPendingResume = true,
   ) {
+    if (cancelPendingResume) didResolveStudyResume.current = true;
     setSelectedSeder(seder);
     setSelectedTractate(tractate);
     setSelectedChapter(chapter);
@@ -294,6 +338,50 @@ export default function BrowsePage() {
       '',
       browsePath(seder?.name, tractate?.tractate, chapter, mishna),
     );
+  }
+
+  function openStudyMishna(globalIndex: number, remember: boolean) {
+    const reference = ALL_MISHNAYOT[globalIndex - 1];
+    if (!reference || reference.globalIndex !== globalIndex) return;
+    const seder = SEDARIM.find(item => item.name === reference.seder) ?? null;
+    const tractate = seder?.tractates.find(
+      item => item.tractate === reference.tractate,
+    ) ?? null;
+    if (!seder || !tractate) return;
+
+    navigateTo(seder, tractate, reference.chapter, reference.mishna, false);
+    setOpenText(`${reference.chapter}:${reference.mishna}`);
+    if (remember) writeStudyResume(getBrowserStorage(), reference.globalIndex);
+  }
+
+  function rememberNextStudyPlace(globalIndex: number, completed: boolean): number {
+    const targetIndex = completed
+      ? Math.min(globalIndex + 1, ALL_MISHNAYOT.length)
+      : globalIndex;
+    writeStudyResume(getBrowserStorage(), targetIndex);
+    return targetIndex;
+  }
+
+  function toggleMishnaText(globalIndex: number, chapter: number, mishna: number) {
+    const textKey = `${chapter}:${mishna}`;
+    if (openText === textKey) {
+      setOpenText(null);
+      return;
+    }
+
+    setTargetMishna(mishna);
+    setOpenText(textKey);
+    window.history.replaceState(
+      null,
+      '',
+      browsePath(
+        selectedSeder?.name,
+        selectedTractate?.tractate,
+        chapter,
+        mishna,
+      ),
+    );
+    writeStudyResume(getBrowserStorage(), globalIndex);
   }
 
   function navTo(crumb: Crumb) {
@@ -433,6 +521,11 @@ export default function BrowsePage() {
           return next;
         });
       }
+      const lastIndex = Math.max(...scope.globalIndices);
+      if (Number.isFinite(lastIndex)) {
+        const nextIndex = rememberNextStudyPlace(lastIndex, true);
+        openStudyMishna(nextIndex, true);
+      }
       setProgressAnnouncement(
         `All ${scope.globalIndices.length} Mishnayot in ${scope.label} are now marked as self-studied.`,
       );
@@ -512,6 +605,8 @@ export default function BrowsePage() {
           [globalIndex]: data.mishnaProgress as MishnaProgressRecord,
         }));
       }
+      const nextIndex = rememberNextStudyPlace(globalIndex, desiredSelfStudy);
+      openStudyMishna(nextIndex, true);
       const remainingSources = learningSources(optimistic).filter(source => source !== 'Self-study');
       if (desiredSelfStudy) {
         setProgressAnnouncement(
@@ -905,7 +1000,11 @@ export default function BrowsePage() {
                   </div>
                 </div>
                 <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-                  <button type="button" onClick={() => setOpenText(isOpen ? null : textKey)}
+                  <button type="button" onClick={() => toggleMishnaText(
+                    unit.globalIndex,
+                    selectedChapter,
+                    m,
+                  )}
                     aria-expanded={isOpen} aria-controls={textId}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer hover:shadow-sm"
                     style={{ background: isOpen ? pal.bg : 'var(--bg)', borderColor: pal.border, color: pal.accent }}>

@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_LINKS = [
-  { href: '/learn', label: 'Learn' },
+  { href: '/learn', label: 'Audio' },
   { href: '/cycles', label: 'My Cycle' },
-  { href: '/browse', label: 'Browse' },
+  { href: '/browse', label: 'Self-Study' },
   { href: '/progress', label: 'Progress' },
   { href: '/calendar', label: 'Calendar' },
 ];
@@ -91,7 +91,7 @@ export default function NavBar() {
             <Link href="/learn"
               className="btn-primary ml-1 hidden sm:inline-block"
               style={{ fontSize: '0.875rem', padding: '0.5rem 1.25rem' }}>
-              Start Learning
+              Listen Now
             </Link>
 
             {/* Mobile menu toggle */}
@@ -137,7 +137,7 @@ export default function NavBar() {
               <Link href="/learn" onClick={() => setMenuOpen(false)}
                 className="btn-primary text-center mt-2"
                 style={{ fontSize: '0.875rem', padding: '0.75rem 1.25rem' }}>
-                Start Learning
+                Listen Now
               </Link>
             </div>
           </motion.div>

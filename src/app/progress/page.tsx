@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react';
 import ProgressBar from '@/components/ProgressBar';
 import TractateCard from '@/components/TractateCard';
 import { ALL_MISHNAYOT, SEDARIM, MISHNA_STRUCTURE, TOTAL_MISHNAYOT, SEDER_HEBREW, type MishnaReference } from '@/lib/mishna-data';
+import {
+  buildBrowseHref,
+  readStudyResume,
+  resolveStudyResume,
+} from '@/lib/study-resume';
 import Link from 'next/link';
 
 interface MishnaProgressData {
@@ -26,6 +31,15 @@ const SAMPLE_PROGRESS: TractateProgress = {
   'Eruvin':    { completed: 0,   inProgress: false },
 };
 
+function getBrowserStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export default function ProgressPage() {
   const [user, setUser] = useState<{ id: string } | null>(null);
   const [tractateProgress, setTractateProgress] = useState<TractateProgress>({});
@@ -47,11 +61,12 @@ export default function ProgressPage() {
 
       if (response.ok) {
         const data = await response.json() as { mishnaProgress?: MishnaProgressData[] };
+        const progressRows = data.mishnaProgress ?? [];
         setUser({ id: 'signed-in' });
         const map: TractateProgress = {};
         const learnedIndices = new Set<number>();
 
-        for (const row of data.mishnaProgress ?? []) {
+        for (const row of progressRows) {
           const ref = ALL_MISHNAYOT[row.global_index - 1];
           if (!ref) continue;
           learnedIndices.add(row.global_index);
@@ -61,7 +76,17 @@ export default function ProgressPage() {
           map[t].inProgress = true;
         }
 
-        const next = ALL_MISHNAYOT.find(ref => !learnedIndices.has(ref.globalIndex)) ?? null;
+        const firstUnlearned = ALL_MISHNAYOT.find(
+          ref => !learnedIndices.has(ref.globalIndex),
+        ) ?? null;
+        const resume = resolveStudyResume({
+          localPointer: readStudyResume(getBrowserStorage()),
+          serverProgress: progressRows,
+          fallbackGlobalIndex: firstUnlearned?.globalIndex,
+        });
+        const next = resume
+          ? ALL_MISHNAYOT[resume.globalIndex - 1] ?? null
+          : null;
         if (next) {
           map[next.tractate] = {
             ...(map[next.tractate] || { completed: 0, inProgress: false }),
@@ -90,9 +115,7 @@ export default function ProgressPage() {
   }, []);
 
   const overallPct = TOTAL_MISHNAYOT > 0 ? (completedCount / TOTAL_MISHNAYOT) * 100 : 0;
-  const continueHref = nextMishna
-    ? `/browse?seder=${encodeURIComponent(nextMishna.seder)}&tractate=${encodeURIComponent(nextMishna.tractate)}&chapter=${nextMishna.chapter}&mishna=${nextMishna.mishna}`
-    : '/browse';
+  const continueHref = nextMishna ? buildBrowseHref(nextMishna) : '/browse';
 
   function toggleSeder(name: string) {
     setExpandedSeders(prev => {
@@ -164,14 +187,14 @@ export default function ProgressPage() {
           <div className="space-y-1 text-right">
             {nextMishna && (
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                Next unlearned:{' '}
+                Continue self-study:{' '}
                 <span className="font-medium" style={{ color: 'var(--gold-dark)' }}>
                   {nextMishna.tractate} {nextMishna.chapter}:{nextMishna.mishna}
                 </span>
               </p>
             )}
             <Link href={continueHref} className="text-xs hover:underline block" style={{ color: 'var(--gold-dark)' }}>
-              Continue where I&apos;m holding →
+              Continue self-study →
             </Link>
           </div>
         </div>
@@ -280,7 +303,7 @@ export default function ProgressPage() {
       {/* Bottom CTA */}
       <div className="text-center mt-12 py-8 border-t" style={{ borderColor: 'var(--border)' }}>
         <Link href={continueHref} className="btn-gold px-8 py-4 rounded-xl text-base inline-block">
-          Continue Where I&apos;m Holding →
+          Continue Self-Study →
         </Link>
       </div>
     </div>

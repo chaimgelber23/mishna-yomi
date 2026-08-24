@@ -159,9 +159,13 @@ export default function HeroSection() {
               <Link href="/learn" className="btn-primary"
                 style={{ fontSize: '0.9375rem', padding: '0.875rem 2.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                Start Learning Today
+                Listen to Today&apos;s Shiur
               </Link>
             </MagneticButton>
+            <Link href="/browse" className="btn-ghost"
+              style={{ fontSize: '0.9375rem', padding: '0.875rem 2.25rem' }}>
+              Continue Self-Study
+            </Link>
             <Link href="/cycles" className="btn-ghost"
               style={{ fontSize: '0.9375rem', padding: '0.875rem 2.25rem' }}>
               Create Your Own Cycle
