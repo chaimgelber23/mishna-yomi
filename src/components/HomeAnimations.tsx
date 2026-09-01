@@ -5,6 +5,7 @@ import { FadeIn, StaggerChildren, StaggerItem, MagneticButton } from './animatio
 import SubscribeForm from './SubscribeForm';
 import HeroSection from './HeroSection';
 import { Ornament } from './Ornament';
+import { getLearnHrefForDay } from '@/lib/calendar';
 import type { SederInfo } from '@/lib/mishna-data';
 
 interface HomeAnimationsProps {
@@ -67,7 +68,7 @@ const SEDER_PALETTES = [
 export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot, totalTractates: _totalTractates, totalSedarim: _totalSedarim, sedarim }: HomeAnimationsProps) {
   return (
     <>
-      <HeroSection />
+      <HeroSection todayLearnHref={getLearnHrefForDay(today.dayNumber)} />
 
       {/* ── TODAY'S LESSON ── */}
       <section style={{ background: 'var(--bg)' }} className="py-20">
@@ -85,7 +86,7 @@ export default function HomeAnimations({ today, totalMishnayot: _totalMishnayot,
                   <p className="text-sm" style={{ color: 'var(--muted)' }}>{today.dateLabel}</p>
                 </div>
                 <MagneticButton>
-                  <Link href="/learn" className="btn-primary flex-shrink-0"
+                  <Link href={getLearnHrefForDay(today.dayNumber)} className="btn-primary flex-shrink-0"
                     style={{ fontSize: '0.9375rem', padding: '0.75rem 1.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                     Listen Now

@@ -48,6 +48,11 @@ export function getMishnayotForDay(dayNumber: number): MishnaReference[] {
   return DAY_TO_MISHNAYOT[idx] || [];
 }
 
+/** Link to the exact canonical lesson for a cycle day. */
+export function getLearnHrefForDay(dayNumber: number): string {
+  return `/learn?day=${dayNumber}`;
+}
+
 /**
  * Returns today's 2 Mishnayot
  */

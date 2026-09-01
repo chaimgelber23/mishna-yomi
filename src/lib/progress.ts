@@ -17,6 +17,7 @@ export interface EpisodeProgressRow {
   completed: boolean;
   position_seconds: number;
   completed_at: string | null;
+  updated_at: string | null;
   mishna_episodes: {
     id: string;
     title: string;

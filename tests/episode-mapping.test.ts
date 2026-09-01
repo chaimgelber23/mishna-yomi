@@ -123,6 +123,32 @@ test('deduplicates exact content by newest publication and then stable id', () =
   assert.deepEqual(preferred.map((episode) => episode.id), ['a', 'd']);
 });
 
+test('orders lessons by canonical Mishnah mapping instead of publication time', () => {
+  const preferred = choosePreferredMappedEpisodes([
+    {
+      id: 'later-uploaded-first',
+      published_at: '2026-01-01T00:00:00Z',
+      mishna_episode_units: [
+        { global_index: 1471, sequence: 1 },
+        { global_index: 1472, sequence: 2 },
+      ],
+    },
+    {
+      id: 'earlier-mishnah-uploaded-later',
+      published_at: '2026-01-02T00:00:00Z',
+      mishna_episode_units: [
+        { global_index: 1469, sequence: 1 },
+        { global_index: 1470, sequence: 2 },
+      ],
+    },
+  ]);
+
+  assert.deepEqual(preferred.map((episode) => episode.id), [
+    'earlier-mishnah-uploaded-later',
+    'later-uploaded-first',
+  ]);
+});
+
 test('incremental sync skips exact rows and repairs missing, changed, or unmapped rows', () => {
   const desired = {
     title: 'Mishna Yomi - Kelim 1:1-2',

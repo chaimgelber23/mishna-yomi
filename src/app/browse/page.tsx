@@ -165,6 +165,7 @@ function getPalette(sederName: string) {
 export default function BrowsePage() {
   const mutationLock = useRef(false);
   const explicitBrowseLocation = useRef(false);
+  const resumeRequested = useRef(false);
   const didResolveStudyResume = useRef(false);
   const [level, setLevel]                       = useState<Level>('seder');
   const [selectedSeder, setSelectedSeder]       = useState<SederInfo | null>(null);
@@ -186,6 +187,7 @@ export default function BrowsePage() {
   // Stable deep links can open any level, down to one Mishnah.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    resumeRequested.current = params.get('resume') === '1';
     const sederParam = params.get('seder');
     const tractateParam = params.get('tractate');
     let matchedSeder = sederParam
@@ -297,7 +299,7 @@ export default function BrowsePage() {
   useEffect(() => {
     if (!progressReady || didResolveStudyResume.current) return;
     didResolveStudyResume.current = true;
-    if (explicitBrowseLocation.current) return;
+    if (!resumeRequested.current || explicitBrowseLocation.current) return;
 
     const storage = getBrowserStorage();
     const selection = resolveStudyResume({
@@ -307,8 +309,9 @@ export default function BrowsePage() {
     if (!selection) return;
 
     openStudyMishna(selection.globalIndex, true);
-  // Initial resume runs once after progress/local state is available. Later
-  // self-study mutations must not move the learner unexpectedly.
+  // Only an explicit Continue entry resumes after progress/local state is
+  // available. A plain /browse remains the All Sedarim chooser.
+  // Later self-study mutations must not move the learner unexpectedly.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progressReady, mishnaProgress]);
 

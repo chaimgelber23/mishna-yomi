@@ -38,6 +38,7 @@ export async function GET() {
         completed,
         position_seconds,
         completed_at,
+        updated_at,
         mishna_episodes (
           id,
           title,
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
   const [progressResult, mappingResult] = await Promise.all([
     supabase
       .from('mishna_progress')
-      .select('id, episode_id, completed, position_seconds, completed_at')
+      .select('id, episode_id, completed, position_seconds, completed_at, updated_at')
       .eq('user_id', user.id)
       .eq('episode_id', mutation.episodeId)
       .maybeSingle(),

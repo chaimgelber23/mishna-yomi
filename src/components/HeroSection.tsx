@@ -17,7 +17,11 @@ const PARTICLES = FLOATING_LETTERS.map((letter, i) => ({
   opacity: [0.05, 0.07, 0.045, 0.075, 0.04, 0.06, 0.05, 0.055, 0.045, 0.065, 0.05, 0.04][i],
 }));
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  todayLearnHref: string;
+}
+
+export default function HeroSection({ todayLearnHref }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden"
       style={{
@@ -156,13 +160,13 @@ export default function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.66 }}>
             <MagneticButton>
-              <Link href="/learn" className="btn-primary"
+              <Link href={todayLearnHref} className="btn-primary"
                 style={{ fontSize: '0.9375rem', padding: '0.875rem 2.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 Listen to Today&apos;s Shiur
               </Link>
             </MagneticButton>
-            <Link href="/browse" className="btn-ghost"
+            <Link href="/browse?resume=1" className="btn-ghost"
               style={{ fontSize: '0.9375rem', padding: '0.875rem 2.25rem' }}>
               Continue Self-Study
             </Link>

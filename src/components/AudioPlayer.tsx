@@ -1,7 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { formatDuration } from '@/lib/rss';
+import {
+  createThrottledLatestSaver,
+  readEpisodeResume,
+  resolveEpisodePosition,
+  writeLessonResume,
+  type ThrottledLatestSaver,
+} from '@/lib/lesson-resume';
 
 interface Episode {
   id: string; title: string; audioUrl: string;
@@ -17,12 +24,14 @@ interface AudioPlayerProps {
   onRemoveComplete?: (positionSeconds: number) => boolean | void | Promise<boolean | void>;
   onPositionChange?: (s: number) => void | Promise<void>;
   onPrev?: () => void; onNext?: () => void;
-  hasPrev?: boolean; hasNext?: boolean; initialPosition?: number; initialCompleted?: boolean;
+  hasPrev?: boolean; hasNext?: boolean; initialPosition?: number;
+  initialPositionUpdatedAt?: string | null; hasInitialProgress?: boolean;
+  initialCompleted?: boolean;
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
-export default function AudioPlayer({ episode, onComplete, onRemoveComplete, onPositionChange, onPrev, onNext, hasPrev = false, hasNext = false, initialPosition = 0, initialCompleted = false }: AudioPlayerProps) {
+export default function AudioPlayer({ episode, onComplete, onRemoveComplete, onPositionChange, onPrev, onNext, hasPrev = false, hasNext = false, initialPosition = 0, initialPositionUpdatedAt = null, hasInitialProgress = false, initialCompleted = false }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -32,50 +41,114 @@ export default function AudioPlayer({ episode, onComplete, onRemoveComplete, onP
   const [completed, setCompleted] = useState(initialCompleted);
   const [completing, setCompleting] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const saveTimer = useRef<NodeJS.Timeout | null>(null);
   const completionPending = useRef(false);
   const completedRef = useRef(initialCompleted);
-  const key = `mishna-pos-${episode.id}`;
+  const latestTimeRef = useRef(initialPosition);
+  const lastLocalSecondRef = useRef<number | null>(null);
+  const hasPlaybackActivityRef = useRef(false);
+  const onPositionChangeRef = useRef(onPositionChange);
+  onPositionChangeRef.current = onPositionChange;
+  const remoteSaverRef = useRef<ThrottledLatestSaver<number> | null>(null);
+  if (!remoteSaverRef.current) {
+    remoteSaverRef.current = createThrottledLatestSaver((seconds) => {
+      void onPositionChangeRef.current?.(seconds);
+    }, 5000);
+  }
 
-  function clearPendingSave() {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
+  function getLocalStorage(): Storage | null {
+    try {
+      return window.localStorage;
+    } catch {
+      return null;
     }
+  }
+
+  function rememberPosition(t: number, nextCompleted = completedRef.current, force = false) {
+    const seconds = Math.max(0, Math.floor(t));
+    latestTimeRef.current = seconds;
+    if (!force && lastLocalSecondRef.current === seconds) return seconds;
+    lastLocalSecondRef.current = seconds;
+    writeLessonResume(getLocalStorage(), {
+      episodeId: episode.id,
+      positionSeconds: seconds,
+      completed: nextCompleted,
+    });
+    return seconds;
+  }
+
+  function flushPosition() {
+    if (
+      !hasPlaybackActivityRef.current
+      || completionPending.current
+      || completedRef.current
+    ) return;
+
+    const seconds = rememberPosition(
+      audioRef.current?.currentTime ?? latestTimeRef.current,
+      false,
+      true,
+    );
+    remoteSaverRef.current?.schedule(seconds);
+    remoteSaverRef.current?.flush();
   }
 
   useEffect(() => {
     setCompleted(initialCompleted);
     completedRef.current = initialCompleted;
     completionPending.current = false;
-    if (initialCompleted) clearPendingSave();
+    if (initialCompleted) remoteSaverRef.current?.cancel();
   }, [initialCompleted]);
 
-  useEffect(() => () => clearPendingSave(), []);
-
   useEffect(() => {
-    const s = localStorage.getItem(key);
-    if (s) { const p = parseInt(s, 10); if (!isNaN(p) && p > 0) setCurrentTime(p); }
-    else if (initialPosition > 0) setCurrentTime(initialPosition);
-  }, [episode.id, initialPosition, key]);
+    const localResume = readEpisodeResume(getLocalStorage(), episode.id);
+    const resolved = resolveEpisodePosition(
+      episode.id,
+      localResume,
+      hasInitialProgress
+        ? {
+            episode_id: episode.id,
+            position_seconds: Math.max(0, Math.floor(initialPosition)),
+            completed: initialCompleted,
+            updated_at: initialPositionUpdatedAt,
+          }
+        : null,
+    );
+    latestTimeRef.current = resolved.positionSeconds;
+    setCurrentTime(resolved.positionSeconds);
+    completedRef.current = resolved.completed;
+    setCompleted(resolved.completed);
+    rememberPosition(resolved.positionSeconds, resolved.completed, true);
+
+    const handlePageHide = () => flushPosition();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushPosition();
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      flushPosition();
+      remoteSaverRef.current?.cancel();
+    };
+  // AudioPlayer is remounted with key={episode.id}; this effect owns that one
+  // lesson lifecycle and must not restart when a progress heartbeat returns.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { if (loaded && audioRef.current && currentTime > 0) audioRef.current.currentTime = currentTime; }, [loaded]); // eslint-disable-line
 
   useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = SPEEDS[speedIdx]; }, [speedIdx]);
-
-  const save = useCallback((t: number) => {
-    if (completionPending.current || completedRef.current) return;
-    localStorage.setItem(key, String(Math.floor(t)));
-    onPositionChange?.(Math.floor(t));
-  }, [key, onPositionChange]);
 
   function onTimeUpdate() {
     if (!audioRef.current) return;
     const t = audioRef.current.currentTime;
     setCurrentTime(t);
     if (completionPending.current || completedRef.current) return;
-    clearPendingSave();
-    saveTimer.current = setTimeout(() => save(t), 5000);
+    hasPlaybackActivityRef.current = true;
+    const seconds = rememberPosition(t, false);
+    remoteSaverRef.current?.schedule(seconds);
   }
 
   function onLoaded() { if (!audioRef.current) return; setDuration(audioRef.current.duration); setLoaded(true); }
@@ -86,17 +159,18 @@ export default function AudioPlayer({ episode, onComplete, onRemoveComplete, onP
     if (!handler) return;
 
     completionPending.current = true;
-    clearPendingSave();
+    remoteSaverRef.current?.cancel();
     setCompleting(true);
 
     const finalPosition = Math.floor(duration > 0 ? duration : currentTime);
-    localStorage.setItem(key, String(finalPosition));
+    rememberPosition(finalPosition, completedRef.current, true);
 
     try {
       const saved = await handler(finalPosition);
       if (saved !== false) {
         completedRef.current = nextCompleted;
         setCompleted(nextCompleted);
+        rememberPosition(finalPosition, nextCompleted, true);
         completionPending.current = false;
         setCompleting(false);
         return;
@@ -114,20 +188,28 @@ export default function AudioPlayer({ episode, onComplete, onRemoveComplete, onP
   }
   function togglePlay() {
     if (!audioRef.current) return;
-    if (playing) { audioRef.current.pause(); save(currentTime); } else audioRef.current.play();
-    setPlaying(!playing);
+    if (playing) audioRef.current.pause();
+    else void audioRef.current.play();
   }
   function clickProgress(e: React.MouseEvent<HTMLDivElement>) {
     if (!progressRef.current || !audioRef.current) return;
     const r = progressRef.current.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
     const t = ratio * duration;
-    audioRef.current.currentTime = t; setCurrentTime(t); save(t);
+    audioRef.current.currentTime = t;
+    setCurrentTime(t);
+    hasPlaybackActivityRef.current = true;
+    rememberPosition(t, completedRef.current, true);
+    flushPosition();
   }
   function skip(s: number) {
     if (!audioRef.current) return;
     const t = Math.max(0, Math.min(duration, currentTime + s));
-    audioRef.current.currentTime = t; setCurrentTime(t);
+    audioRef.current.currentTime = t;
+    setCurrentTime(t);
+    hasPlaybackActivityRef.current = true;
+    rememberPosition(t, completedRef.current, true);
+    flushPosition();
   }
 
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -244,7 +326,8 @@ export default function AudioPlayer({ episode, onComplete, onRemoveComplete, onP
       </div>
 
       <audio ref={audioRef} src={episode.audioUrl} onTimeUpdate={onTimeUpdate} onLoadedMetadata={onLoaded}
-        onEnded={onEnded} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} preload="metadata" />
+        onEnded={onEnded} onPlay={() => { hasPlaybackActivityRef.current = true; setPlaying(true); }}
+        onPause={() => { setPlaying(false); flushPosition(); }} preload="metadata" />
     </div>
   );
 }

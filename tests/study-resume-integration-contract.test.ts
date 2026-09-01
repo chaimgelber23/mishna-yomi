@@ -5,9 +5,11 @@ import test from 'node:test';
 const browsePagePath = new URL('../src/app/browse/page.tsx', import.meta.url);
 const progressPagePath = new URL('../src/app/progress/page.tsx', import.meta.url);
 
-test('Browse restores, opens, and advances the self-study pointer', async () => {
+test('Browse only restores for Continue, then opens and advances the self-study pointer', async () => {
   const source = await readFile(browsePagePath, 'utf8');
 
+  assert.match(source, /resumeRequested\.current = params\.get\('resume'\) === '1'/);
+  assert.match(source, /if \(!resumeRequested\.current \|\| explicitBrowseLocation\.current\) return/);
   assert.match(source, /resolveStudyResume\(\{[\s\S]*serverProgress:\s*Object\.values\(mishnaProgress\)/);
   assert.match(source, /openStudyMishna\(selection\.globalIndex, true\)/);
   assert.match(source, /setOpenText\(`\$\{requestedChapter\}:\$\{requestedMishna\}`\)/);

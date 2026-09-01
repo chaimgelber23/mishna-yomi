@@ -329,7 +329,11 @@ function sameInstant(left: string, right: string): boolean {
   return left === right;
 }
 
-/** Keep one episode per exact unit mapping: newest publication, then lowest stable UUID. */
+/**
+ * Keep one episode per exact unit mapping, then return lessons in canonical
+ * Mishnah order. Publication timestamps decide which duplicate recording wins;
+ * they never decide which Mishnah comes next.
+ */
 export function choosePreferredMappedEpisodes<T extends MappedEpisodeForPreference>(episodes: T[]): T[] {
   const preferred = new Map<string, T>();
 
@@ -347,10 +351,29 @@ export function choosePreferredMappedEpisodes<T extends MappedEpisodeForPreferen
     }
   }
 
-  return [...preferred.values()].sort((a, b) => {
-    const dateOrder = timestamp(a.published_at) - timestamp(b.published_at);
-    return dateOrder || a.id.localeCompare(b.id);
-  });
+  return [...preferred.values()].sort(compareCanonicalMapping);
+}
+
+function compareCanonicalMapping(
+  left: MappedEpisodeForPreference,
+  right: MappedEpisodeForPreference,
+): number {
+  const leftIndices = orderedGlobalIndices(left);
+  const rightIndices = orderedGlobalIndices(right);
+  const sharedLength = Math.min(leftIndices.length, rightIndices.length);
+
+  for (let index = 0; index < sharedLength; index++) {
+    const difference = leftIndices[index] - rightIndices[index];
+    if (difference !== 0) return difference;
+  }
+
+  return leftIndices.length - rightIndices.length || left.id.localeCompare(right.id);
+}
+
+function orderedGlobalIndices(episode: MappedEpisodeForPreference): number[] {
+  return [...episode.mishna_episode_units]
+    .sort((a, b) => a.sequence - b.sequence || a.global_index - b.global_index)
+    .map((unit) => unit.global_index);
 }
 
 function isPreferredEpisode(candidate: MappedEpisodeForPreference, current: MappedEpisodeForPreference): boolean {

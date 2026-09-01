@@ -8,8 +8,18 @@ import MishnaText from '@/components/MishnaText';
 import { ALL_MISHNAYOT, TOTAL_MISHNAYOT, type MishnaReference } from '@/lib/mishna-data';
 import { mishnaRangeLabel } from '@/lib/cycle';
 import {
+  getMishnayotForDay,
   getTodaySummary,
+  TOTAL_CYCLE_DAYS,
 } from '@/lib/calendar';
+import {
+  episodeMatchesExactUnits,
+  readBestEpisodePlace,
+  readLastPlace,
+  resolveInitialLesson,
+  type ServerLessonResumeRow,
+} from '@/lib/lesson-resume';
+import { getEpisodeListWindow } from '@/lib/episode-list';
 import Link from 'next/link';
 
 interface Episode {
@@ -31,6 +41,7 @@ interface ProgressMap {
   [episodeId: string]: {
     completed: boolean;
     positionSeconds: number;
+    updatedAt: string | null;
   };
 }
 
@@ -61,6 +72,21 @@ function episodeBelongsToLesson(episode: Episode, globalIndices: ReadonlySet<num
   return units.length > 0 && units.every(unit => globalIndices.has(unit.global_index));
 }
 
+function findExactEpisodeForLesson(episodes: Episode[], globalIndices: ReadonlySet<number>): number {
+  return episodes.findIndex(episode => (
+    episodeMatchesExactUnits(episodeUnits(episode), globalIndices)
+  ));
+}
+
+function findEpisodeForLesson(episodes: Episode[], globalIndices: ReadonlySet<number>): number {
+  const exactIndex = findExactEpisodeForLesson(episodes, globalIndices);
+  if (exactIndex >= 0) return exactIndex;
+
+  // Preserve the two known split recordings, but prefer a complete two-unit
+  // match whenever the feed contains one.
+  return episodes.findIndex(episode => episodeBelongsToLesson(episode, globalIndices));
+}
+
 function learnedSources(progress: MishnaProgressEntry | undefined): string[] {
   if (!progress) return [];
   const sources: string[] = [];
@@ -70,11 +96,21 @@ function learnedSources(progress: MishnaProgressEntry | undefined): string[] {
   return sources;
 }
 
+function getBrowserStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export default function LearnPage() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [progress, setProgress] = useState<ProgressMap>({});
   const [mishnaProgress, setMishnaProgress] = useState<Record<number, MishnaProgressEntry>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [requestedDayWithoutEpisode, setRequestedDayWithoutEpisode] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [showAllEpisodes, setShowAllEpisodes] = useState(false);
@@ -114,32 +150,26 @@ export default function LearnPage() {
         ? await episodesResponse.json() as { episodes?: Episode[] }
         : { episodes: [] as Episode[] };
       const eps = episodesPayload.episodes ?? [];
+      setEpisodes(eps);
 
-      if (eps.length) {
-        setEpisodes(eps);
-
-        // A Browse "Listen" link names the exact episode to open. Honor that
-        // before falling back to today's lesson or the newest available one.
-        const requestedEpisodeId = new URLSearchParams(window.location.search).get('episode');
-        const requestedIdx = requestedEpisodeId
-          ? eps.findIndex(e => e.id === requestedEpisodeId)
-          : -1;
-        const todayIdx = eps.findIndex(e => episodeBelongsToLesson(e, todayGlobalIndices));
-        const fallbackIdx = todayIdx >= 0 ? todayIdx : Math.max(0, eps.length - 1);
-        setCurrentIdx(requestedIdx >= 0 ? requestedIdx : fallbackIdx);
-      }
+      let episodeProgress: ServerLessonResumeRow[] = [];
 
       // Get progress if logged in
       if (user) {
         const progressResponse = await fetch('/api/progress');
         if (progressResponse.ok) {
           const payload = await progressResponse.json() as {
-            episodeProgress?: { episode_id: string; completed: boolean; position_seconds: number }[];
+            episodeProgress?: ServerLessonResumeRow[];
             mishnaProgress?: MishnaProgressEntry[];
           };
+          episodeProgress = payload.episodeProgress ?? [];
           const map: ProgressMap = {};
-          for (const p of payload.episodeProgress ?? []) {
-            map[p.episode_id] = { completed: p.completed, positionSeconds: p.position_seconds };
+          for (const p of episodeProgress) {
+            map[p.episode_id] = {
+              completed: p.completed,
+              positionSeconds: p.position_seconds,
+              updatedAt: p.updated_at,
+            };
           }
           setProgress(map);
 
@@ -151,23 +181,67 @@ export default function LearnPage() {
         }
       }
 
+      const searchParams = new URLSearchParams(window.location.search);
+      const requestedEpisodeId = searchParams.get('episode');
+      const requestedDayValue = searchParams.get('day');
+      const requestedDay = requestedDayValue && /^\d+$/.test(requestedDayValue)
+        ? Number(requestedDayValue)
+        : null;
+      const requestedDayIndices = requestedDay !== null
+        && requestedDay >= 1
+        && requestedDay <= TOTAL_CYCLE_DAYS
+        ? new Set(getMishnayotForDay(requestedDay).map(ref => ref.globalIndex))
+        : null;
+      const requestedDayIdx = requestedDayIndices
+        ? findExactEpisodeForLesson(eps, requestedDayIndices)
+        : -1;
+      const todayIdx = findEpisodeForLesson(eps, todayGlobalIndices);
+      const fallbackIdx = todayIdx >= 0 ? todayIdx : Math.max(0, eps.length - 1);
+      const storage = getBrowserStorage();
+      const localLastPlace = readLastPlace(storage)
+        ?? readBestEpisodePlace(storage, eps.map(episode => episode.id));
+      const selection = resolveInitialLesson({
+        episodes: eps,
+        explicitEpisodeId: requestedEpisodeId,
+        explicitDayMatch: requestedDayIdx >= 0 ? { index: requestedDayIdx } : null,
+        explicitDayRequested: requestedDayIndices !== null,
+        localLastPlace,
+        serverProgress: episodeProgress,
+        fallbackIndex: fallbackIdx,
+      });
+      setRequestedDayWithoutEpisode(
+        selection.source === 'explicit-day-unavailable' ? requestedDay : null,
+      );
+      setCurrentIdx(selection.index);
+
       setLoading(false);
     }
     load();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Find the first lesson containing a Mishnah the user has not learned by any source.
   function getResumeIdx(): number {
-    for (let i = 0; i < episodes.length; i++) {
-      const units = episodeUnits(episodes[i]);
-      if (units.length && units.some(unit => !mishnaProgress[unit.global_index])) return i;
-      if (!units.length && !progress[episodes[i].id]?.completed) return i;
-    }
-    return 0;
+    const serverProgress: ServerLessonResumeRow[] = Object.entries(progress).map(
+      ([episodeId, entry]) => ({
+        episode_id: episodeId,
+        position_seconds: entry.positionSeconds,
+        completed: entry.completed,
+        updated_at: entry.updatedAt,
+      }),
+    );
+    const storage = getBrowserStorage();
+    return resolveInitialLesson({
+      episodes,
+      localLastPlace: readLastPlace(storage)
+        ?? readBestEpisodePlace(storage, episodes.map(episode => episode.id)),
+      serverProgress,
+      fallbackIndex: currentIdx,
+    }).index;
   }
 
   function resume() {
     const idx = getResumeIdx();
+    if (idx < 0) return;
+    setRequestedDayWithoutEpisode(null);
     setCurrentIdx(idx);
     document.getElementById('player')?.scrollIntoView({ behavior: 'smooth' });
   }
@@ -177,12 +251,16 @@ export default function LearnPage() {
     const response = await fetch('/api/progress');
     if (!response.ok) throw new Error('progress_refresh_failed');
     const payload = await response.json() as {
-      episodeProgress?: { episode_id: string; completed: boolean; position_seconds: number }[];
+      episodeProgress?: ServerLessonResumeRow[];
       mishnaProgress?: MishnaProgressEntry[];
     };
     const episodeMap: ProgressMap = {};
     for (const row of payload.episodeProgress ?? []) {
-      episodeMap[row.episode_id] = { completed: row.completed, positionSeconds: row.position_seconds };
+      episodeMap[row.episode_id] = {
+        completed: row.completed,
+        positionSeconds: row.position_seconds,
+        updatedAt: row.updated_at,
+      };
     }
     setProgress(episodeMap);
     const unitMap: Record<number, MishnaProgressEntry> = {};
@@ -193,7 +271,9 @@ export default function LearnPage() {
 
   const writeProgress = useCallback(async (
     episodeId: string,
-    body: { positionSeconds: number } | { completed: boolean },
+    body:
+      | { positionSeconds: number; completed?: boolean }
+      | { completed: boolean; positionSeconds?: number },
   ): Promise<boolean> => {
     if (!user) {
       if ('completed' in body) setProgressError('Sign in to save this lesson as listened.');
@@ -205,6 +285,7 @@ export default function LearnPage() {
       try {
         const response = await fetch('/api/progress', {
           method: 'POST',
+          keepalive: true,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ episodeId, ...body }),
         });
@@ -216,16 +297,25 @@ export default function LearnPage() {
           return false;
         }
 
-        if ('positionSeconds' in body) {
+        const payload = await response.json() as {
+          progress?: {
+            completed: boolean;
+            position_seconds: number;
+            updated_at: string | null;
+          } | null;
+        };
+
+        if ('completed' in body) {
+          await reloadProgress();
+        } else if ('positionSeconds' in body) {
           setProgress(prev => ({
             ...prev,
             [episodeId]: {
-              completed: prev[episodeId]?.completed ?? false,
-              positionSeconds: body.positionSeconds,
+              completed: payload.progress?.completed ?? prev[episodeId]?.completed ?? false,
+              positionSeconds: payload.progress?.position_seconds ?? body.positionSeconds,
+              updatedAt: payload.progress?.updated_at ?? prev[episodeId]?.updatedAt ?? null,
             },
           }));
-        } else {
-          await reloadProgress();
         }
         setProgressError(null);
         return true;
@@ -246,10 +336,10 @@ export default function LearnPage() {
     return write;
   }, [reloadProgress, user]);
 
-  async function handleComplete(_positionSeconds: number): Promise<boolean> {
+  async function handleComplete(positionSeconds: number): Promise<boolean> {
     const ep = episodes[currentIdx];
     if (!ep) return false;
-    const saved = await writeProgress(ep.id, { completed: true });
+    const saved = await writeProgress(ep.id, { completed: true, positionSeconds });
     if (!saved) return false;
 
     const newlyLearned = episodeUnits(ep).filter(unit => !mishnaProgress[unit.global_index]).length;
@@ -275,6 +365,9 @@ export default function LearnPage() {
   const completedCount = Object.keys(mishnaProgress).length;
   const currentUnits = currentEp ? episodeUnits(currentEp) : [];
   const currentRefs = currentEp ? episodeRefs(currentEp) : [];
+  const requestedDayRefs = requestedDayWithoutEpisode !== null
+    ? getMishnayotForDay(requestedDayWithoutEpisode)
+    : [];
 
   function learnedCountForEpisode(episode: Episode): number {
     return episodeUnits(episode).filter(unit => Boolean(mishnaProgress[unit.global_index])).length;
@@ -295,7 +388,16 @@ export default function LearnPage() {
            referenceLabelForEpisode(ep).toLowerCase().includes(q);
   });
 
-  const displayedEpisodes = showAllEpisodes ? filteredEpisodes : filteredEpisodes.slice(0, 20);
+  const hasEpisodeSearch = searchQuery.trim().length > 0;
+  const displayedEpisodes = getEpisodeListWindow(filteredEpisodes, currentEp, {
+    hasSearch: hasEpisodeSearch,
+    showAll: showAllEpisodes,
+  });
+  const episodeListHeading = hasEpisodeSearch
+    ? `Search Results (${filteredEpisodes.length})`
+    : showAllEpisodes
+      ? `All Episodes (${filteredEpisodes.length})`
+      : 'This Lesson & Up Next';
 
   if (loading) {
     return (
@@ -338,7 +440,11 @@ export default function LearnPage() {
             All {TOTAL_MISHNAYOT.toLocaleString()} Mishnayot learned
           </p>
           <button
-            onClick={() => { setCelebrateComplete(false); setCurrentIdx(0); }}
+            onClick={() => {
+              setCelebrateComplete(false);
+              setRequestedDayWithoutEpisode(null);
+              setCurrentIdx(0);
+            }}
             className="btn-gold px-8 py-4 rounded-xl text-base"
           >
             Start Again from the Beginning
@@ -427,6 +533,8 @@ export default function LearnPage() {
                 hasPrev={currentIdx > 0}
                 hasNext={currentIdx < episodes.length - 1}
                 initialPosition={progress[currentEp.id]?.positionSeconds || 0}
+                initialPositionUpdatedAt={progress[currentEp.id]?.updatedAt ?? null}
+                hasInitialProgress={Boolean(progress[currentEp.id])}
                 initialCompleted={progress[currentEp.id]?.completed || false}
                 key={currentEp.id}
               />
@@ -495,6 +603,19 @@ export default function LearnPage() {
                 )}
               </div>
             </>
+          ) : requestedDayWithoutEpisode !== null ? (
+            <>
+              <div className="card p-6">
+                <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--fg)' }}>
+                  Audio recording not available yet
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                  Cycle Day {requestedDayWithoutEpisode}: {mishnaRangeLabel(requestedDayRefs)}.
+                  You can still learn both Mishnayot below.
+                </p>
+              </div>
+              <MishnaText indices={requestedDayRefs.map(ref => ref.globalIndex)} />
+            </>
           ) : (
             <div className="card p-12 text-center">
               <p className="mb-4" style={{ color: 'var(--muted)' }}>No episodes loaded yet.</p>
@@ -509,7 +630,7 @@ export default function LearnPage() {
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-              All Episodes {episodes.length > 0 && `(${episodes.length})`}
+              {episodeListHeading}
             </h3>
             <Link href="/progress" className="text-xs hover:underline" style={{ color: 'var(--gold-dark)' }}>
               View Progress →
@@ -550,12 +671,16 @@ export default function LearnPage() {
                   totalMishnayot={episodeUnits(ep).length}
                   isActive={realIdx === currentIdx}
                   isToday={episodeBelongsToLesson(ep, todayGlobalIndices)}
-                  onClick={() => setCurrentIdx(realIdx)}
+                  onClick={() => {
+                    setRequestedDayWithoutEpisode(null);
+                    setCurrentIdx(realIdx);
+                    setShowAllEpisodes(false);
+                  }}
                 />
               );
             })}
 
-            {!showAllEpisodes && filteredEpisodes.length > 20 && (
+            {!showAllEpisodes && !hasEpisodeSearch && filteredEpisodes.length > displayedEpisodes.length && (
               <button
                 onClick={() => setShowAllEpisodes(true)}
                 className="w-full py-3 text-sm border rounded-xl transition-colors cursor-pointer"
@@ -563,7 +688,7 @@ export default function LearnPage() {
                 onMouseOver={e => { e.currentTarget.style.color = 'var(--navy)'; e.currentTarget.style.borderColor = 'var(--gold)'; }}
                 onMouseOut={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
               >
-                Show all {filteredEpisodes.length} episodes
+                Browse all {filteredEpisodes.length} episodes
               </button>
             )}
 
