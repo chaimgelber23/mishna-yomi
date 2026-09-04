@@ -1,6 +1,7 @@
 // Edge-compatible RSS parser -- no Node.js dependencies.
 
 import {
+  applyVerifiedEpisodeTitleOverride,
   parseMishnaTitle,
   type ParsedMishnaTitle,
 } from './episode-mapping';
@@ -62,8 +63,9 @@ export async function fetchRSSFeed(): Promise<ParsedEpisode[]> {
     const audioUrl = attr(block, 'enclosure', 'url');
     if (!audioUrl) continue;
 
-    const title = tag(block, 'title') ?? 'Untitled';
+    const sourceTitle = tag(block, 'title') ?? 'Untitled';
     const guid = tag(block, 'guid') ?? audioUrl;
+    const title = applyVerifiedEpisodeTitleOverride(guid, sourceTitle);
     const description = tag(block, 'description') ?? tag(block, 'itunes:summary') ?? null;
     const duration = tag(block, 'itunes:duration');
     const publication = tag(block, 'pubDate') ?? tag(block, 'dc:date');

@@ -59,6 +59,30 @@ const TRACTATE_ALIASES: Record<string, string> = {
   keilim: 'Kelim',
 };
 
+/**
+ * Spotify for Creators published these three stable RSS items with rotated
+ * Kelim chapter 20 titles. The spoken audio was verified on 2026-09-03:
+ *
+ * - 362576ec... teaches 20:4-5
+ * - 6db3bf7b... teaches 20:6-7
+ * - acf6df39... teaches 20:2-3
+ *
+ * Key the correction by GUID, not title, so a future correctly uploaded lesson
+ * with the same visible title is not remapped accidentally.
+ */
+const VERIFIED_EPISODE_TITLE_OVERRIDES: Readonly<Record<string, string>> = {
+  '362576ec-75cc-4771-af9a-5f88533c2844':
+    "Mishna Yomi - Kelim 20:4-5 - By R' Shloimie Friedman",
+  '6db3bf7b-934c-4b8f-bff4-f023dcce956b':
+    "Mishna Yomi - Kelim 20:6-7 - By R' Shloimie Friedman",
+  'acf6df39-7fbf-443a-a62e-ea8903bef88f':
+    "Mishna Yomi - Kelim 20:2-3 - By R' Shloimie Friedman",
+};
+
+export function applyVerifiedEpisodeTitleOverride(guid: string, title: string): string {
+  return VERIFIED_EPISODE_TITLE_OVERRIDES[guid.trim()] ?? title;
+}
+
 const CANONICAL_TRACTATES = new Map<string, string>();
 const REFERENCE_BY_KEY = new Map<string, MishnaReference>();
 
