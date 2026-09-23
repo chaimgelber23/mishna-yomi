@@ -6,6 +6,7 @@ test('database seed uses the shared exact resolver and protected sync RPC', asyn
   const source = await readFile(new URL('../scripts/seed-db.mjs', import.meta.url), 'utf8');
 
   assert.match(source, /resolveEpisodeMapping/);
+  assert.match(source, /applyVerifiedEpisodeTitleOverride\(guid, title\)/);
   assert.match(source, /isPotentialMishnaLesson/);
   assert.match(source, /import episodeMappingModule/);
   assert.match(source, /import calendarModule/);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import {
+  applyVerifiedEpisodeTitleOverride,
   episodeSyncReason,
   isPotentialMishnaLesson,
   resolveEpisodeMapping,
@@ -87,7 +88,8 @@ export async function POST(request: NextRequest) {
     }> = [];
 
     for (const episode of episodes) {
-      const mapping = resolveEpisodeMapping(episode.title);
+      const mappingTitle = applyVerifiedEpisodeTitleOverride(episode.guid, episode.title);
+      const mapping = resolveEpisodeMapping(mappingTitle);
       if (!mapping.ok) {
         if (isPotentialMishnaLesson(episode.title)) {
           unresolved.push({

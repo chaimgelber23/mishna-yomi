@@ -14,6 +14,7 @@ import episodeMappingModule from '../src/lib/episode-mapping';
 import calendarModule from '../src/lib/calendar';
 
 const {
+  applyVerifiedEpisodeTitleOverride,
   isPotentialMishnaLesson,
   resolveEpisodeMapping,
 } = episodeMappingModule;
@@ -77,7 +78,9 @@ async function run() {
     if (!audioUrl) continue;
 
     const title = getTag(block, 'title') ?? 'Untitled';
-    const mapping = resolveEpisodeMapping(title);
+    const guid = getTag(block, 'guid') ?? audioUrl;
+    const mappingTitle = applyVerifiedEpisodeTitleOverride(guid, title);
+    const mapping = resolveEpisodeMapping(mappingTitle);
     if (!mapping.ok) {
       if (isPotentialMishnaLesson(title)) {
         unresolved.push({ title, reason: mapping.reason });
@@ -95,7 +98,7 @@ async function run() {
     }
 
     candidates.push({
-      guid: getTag(block, 'guid') ?? audioUrl,
+      guid,
       title,
       description: getTag(block, 'description') ?? getTag(block, 'itunes:summary') ?? null,
       audioUrl,
