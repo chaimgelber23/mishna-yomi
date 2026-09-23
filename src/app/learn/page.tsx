@@ -118,6 +118,8 @@ export default function LearnPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [progressError, setProgressError] = useState<string | null>(null);
   const progressWriteQueue = useRef(new Map<string, Promise<void>>());
+  const episodeListRef = useRef<HTMLDivElement | null>(null);
+  const activeEpisodeListItemRef = useRef<HTMLDivElement | null>(null);
 
   // Lazy-initialize supabase client only on the browser
   const supabaseRef = useRef<SupabaseClient | null>(null);
@@ -399,6 +401,18 @@ export default function LearnPage() {
       ? `All Episodes (${filteredEpisodes.length})`
       : 'This Lesson & Up Next';
 
+  useEffect(() => {
+    if (!showAllEpisodes || hasEpisodeSearch) return;
+
+    const container = episodeListRef.current;
+    const activeItem = activeEpisodeListItemRef.current;
+    if (!container || !activeItem) return;
+
+    const containerTop = container.getBoundingClientRect().top;
+    const activeItemTop = activeItem.getBoundingClientRect().top;
+    container.scrollTop += activeItemTop - containerTop;
+  }, [showAllEpisodes, hasEpisodeSearch, currentEp?.id, displayedEpisodes.length]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -648,35 +662,39 @@ export default function LearnPage() {
           />
 
           {/* Episode list */}
-          <div className="space-y-1.5 max-h-[600px] overflow-y-auto pr-1">
+          <div ref={episodeListRef} className="space-y-1.5 max-h-[600px] overflow-y-auto pr-1">
             {displayedEpisodes.map((ep, _idx) => {
               const realIdx = episodes.indexOf(ep);
               return (
-                <EpisodeCard
+                <div
                   key={ep.id}
-                  episode={{
-                    id: ep.id,
-                    title: ep.title,
-                    tractate: ep.tractate,
-                    chapterFrom: ep.chapter_from,
-                    mishnaFrom: ep.mishna_from,
-                    chapterTo: ep.chapter_to,
-                    mishnaTo: ep.mishna_to,
-                    durationSeconds: ep.duration_seconds,
-                    publishedAt: ep.published_at,
-                    mishnaDayNumber: ep.mishna_day_number,
-                  }}
-                  referenceLabel={referenceLabelForEpisode(ep)}
-                  learnedCount={learnedCountForEpisode(ep)}
-                  totalMishnayot={episodeUnits(ep).length}
-                  isActive={realIdx === currentIdx}
-                  isToday={episodeBelongsToLesson(ep, todayGlobalIndices)}
-                  onClick={() => {
-                    setRequestedDayWithoutEpisode(null);
-                    setCurrentIdx(realIdx);
-                    setShowAllEpisodes(false);
-                  }}
-                />
+                  ref={realIdx === currentIdx ? activeEpisodeListItemRef : undefined}
+                >
+                  <EpisodeCard
+                    episode={{
+                      id: ep.id,
+                      title: ep.title,
+                      tractate: ep.tractate,
+                      chapterFrom: ep.chapter_from,
+                      mishnaFrom: ep.mishna_from,
+                      chapterTo: ep.chapter_to,
+                      mishnaTo: ep.mishna_to,
+                      durationSeconds: ep.duration_seconds,
+                      publishedAt: ep.published_at,
+                      mishnaDayNumber: ep.mishna_day_number,
+                    }}
+                    referenceLabel={referenceLabelForEpisode(ep)}
+                    learnedCount={learnedCountForEpisode(ep)}
+                    totalMishnayot={episodeUnits(ep).length}
+                    isActive={realIdx === currentIdx}
+                    isToday={episodeBelongsToLesson(ep, todayGlobalIndices)}
+                    onClick={() => {
+                      setRequestedDayWithoutEpisode(null);
+                      setCurrentIdx(realIdx);
+                      setShowAllEpisodes(false);
+                    }}
+                  />
+                </div>
               );
             })}
 
@@ -688,7 +706,7 @@ export default function LearnPage() {
                 onMouseOver={e => { e.currentTarget.style.color = 'var(--navy)'; e.currentTarget.style.borderColor = 'var(--gold)'; }}
                 onMouseOut={e => { e.currentTarget.style.color = 'var(--muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
               >
-                Browse all {filteredEpisodes.length} episodes
+                Browse all {filteredEpisodes.length} episodes from this lesson
               </button>
             )}
 
