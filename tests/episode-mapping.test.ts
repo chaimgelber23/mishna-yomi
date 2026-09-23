@@ -40,17 +40,31 @@ test('resolves same-chapter, cross-chapter, and cross-tractate lessons', () => {
   );
 });
 
-test('normalizes feed aliases, including the current Klim typo', () => {
+test('normalizes feed aliases, including traditional Taharot spellings', () => {
   assert.equal(normalizeTractate('Kesubos'), 'Ketubot');
   assert.equal(normalizeTractate('Gitin'), 'Gittin');
   assert.equal(normalizeTractate('Kinim'), 'Kinnim');
   assert.equal(normalizeTractate('Klim'), 'Kelim');
   assert.equal(normalizeTractate('keilim'), 'Kelim');
+  assert.equal(normalizeTractate('Ohalos'), 'Ohalot');
+  assert.equal(normalizeTractate('Negaim'), "Nega'im");
+  assert.equal(normalizeTractate('Taharos'), 'Tahorot');
+  assert.equal(normalizeTractate('Mikvaos'), "Mikva'ot");
+  assert.equal(normalizeTractate('Nidah'), 'Niddah');
+  assert.equal(normalizeTractate('Machshirin'), 'Makhshirin');
+  assert.equal(normalizeTractate('Tvul Yom'), 'Tevul Yom');
+  assert.equal(normalizeTractate('Uktzin'), 'Oktzin');
 
   const typo = resolve("Mishna Yomi - Klim 24:3-4 - By R' Shloimie Friedman");
   assert.deepEqual(
     typo.units.map(({ tractate, chapter, mishna }) => [tractate, chapter, mishna]),
     [['Kelim', 24, 3], ['Kelim', 24, 4]]
+  );
+
+  const ohalos = resolve("Mishna Yomi - Ohalos 4:2-3 - By R' Shloimie Friedman");
+  assert.deepEqual(
+    ohalos.units.map(({ tractate, chapter, mishna }) => [tractate, chapter, mishna]),
+    [['Ohalot', 4, 2], ['Ohalot', 4, 3]]
   );
 });
 
@@ -62,8 +76,9 @@ test('keeps the two genuine single recordings separate', () => {
   assert.deepEqual(nedarim.globalIndices, [1576]);
 });
 
-test('resolves all 15 known cross-tractate titles to two consecutive units', () => {
+test('resolves all 16 known cross-tractate titles to two consecutive units', () => {
   const titles = [
+    'Kelim 30:4 -Ohalos 1:1',
     'Kinim 3:6 -Kelim 1:1',
     'Temurah 7:6 -Kerisus 1:1',
     'Chulin 12:5 -Bechoros 1:1',

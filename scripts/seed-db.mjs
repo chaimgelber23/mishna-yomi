@@ -17,7 +17,7 @@ const {
   isPotentialMishnaLesson,
   resolveEpisodeMapping,
 } = episodeMappingModule;
-const { getDayNumber } = calendarModule;
+const { getDayNumber, getDayNumberForGlobalIndices } = calendarModule;
 
 const url = process.env.MISHNA_SUPABASE_URL
   ?? process.env.SUPABASE_URL
@@ -114,6 +114,7 @@ async function run() {
   console.log(`Resolved ${candidates.length} lessons; skipped ${skipped} non-lesson items.`);
   let synced = 0;
   const failures = [];
+  let uploadDateMismatchCount = 0;
 
   for (let offset = 0; offset < candidates.length; offset += SYNC_CONCURRENCY) {
     const batch = candidates.slice(offset, offset + SYNC_CONCURRENCY);
@@ -121,6 +122,9 @@ async function run() {
       batch.map(async (candidate) => {
         const first = candidate.mapping.units[0];
         const last = candidate.mapping.units[candidate.mapping.units.length - 1];
+        const uploadDayNumber = getDayNumber(candidate.publishedAt);
+        const officialDayNumber = getDayNumberForGlobalIndices(candidate.mapping.globalIndices);
+        if (uploadDayNumber !== officialDayNumber) uploadDateMismatchCount++;
         const { error } = await supabase.rpc('sync_mishna_episode', {
           p_guid: candidate.guid,
           p_title: candidate.title,
@@ -133,7 +137,7 @@ async function run() {
           p_mishna_from: first.mishna,
           p_chapter_to: last.chapter,
           p_mishna_to: last.mishna,
-          p_mishna_day_number: getDayNumber(candidate.publishedAt),
+          p_mishna_day_number: officialDayNumber,
           p_global_indices: candidate.mapping.globalIndices,
         });
         return error ? { title: candidate.title, error: error.message } : null;
@@ -154,7 +158,10 @@ async function run() {
     return;
   }
 
-  console.log(`Done. Synced ${synced} exact episode mappings.`);
+  console.log(
+    `Done. Synced ${synced} exact episode mappings; `
+      + `${uploadDateMismatchCount} upload dates differed from the official numbered day.`,
+  );
 }
 
 run().catch((error) => {

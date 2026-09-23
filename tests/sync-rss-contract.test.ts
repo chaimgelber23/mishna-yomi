@@ -10,4 +10,7 @@ test('RSS sync reconciles incrementally and bounds repair work per request', asy
   assert.match(source, /const MAX_SYNC_OPERATIONS = 100;/);
   assert.match(source, /candidates\.slice\(0, MAX_SYNC_OPERATIONS\)/);
   assert.match(source, /deferred\.length \? 503/);
+  assert.match(source, /getDayNumberForGlobalIndices\(mapping\.globalIndices\)/);
+  assert.doesNotMatch(source, /mishnaDayNumber: getDayNumber\(episode\.publishedAt\)/);
+  assert.match(source, /uploadDateMismatchCount/);
 });

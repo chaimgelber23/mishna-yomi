@@ -57,6 +57,14 @@ const TRACTATE_ALIASES: Record<string, string> = {
   nida: 'Niddah',
   klim: 'Kelim',
   keilim: 'Kelim',
+  ohalos: 'Ohalot',
+  negaim: "Nega'im",
+  taharos: 'Tahorot',
+  mikvaos: "Mikva'ot",
+  nidah: 'Niddah',
+  machshirin: 'Makhshirin',
+  'tvul yom': 'Tevul Yom',
+  uktzin: 'Oktzin',
 };
 
 /**

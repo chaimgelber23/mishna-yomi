@@ -41,6 +41,35 @@ export function getDayNumber(date: Date): number {
 }
 
 /**
+ * Returns the official Mishna Yomit day for exact canonical Mishnah indices.
+ *
+ * The RSS publication timestamp records when audio was uploaded, which may be
+ * early, late, or part of a bulk upload. It must not determine lesson order or
+ * the official study date. Every unit in one recording must belong to the same
+ * two-Mishnah calendar day; single-Mishnah recordings are valid subsets.
+ */
+export function getDayNumberForGlobalIndices(globalIndices: readonly number[]): number {
+  if (globalIndices.length === 0) {
+    throw new Error('Cannot determine a Mishna Yomit day without a canonical Mishnah index.');
+  }
+
+  const dayNumbers = new Set(globalIndices.map((globalIndex) => {
+    if (!Number.isInteger(globalIndex) || globalIndex < 1 || globalIndex > TOTAL_MISHNAYOT) {
+      throw new Error(`Invalid canonical Mishnah index: ${globalIndex}`);
+    }
+    return Math.ceil(globalIndex / 2);
+  }));
+
+  if (dayNumbers.size !== 1) {
+    throw new Error(
+      `One recording cannot span multiple Mishna Yomit days: ${globalIndices.join(', ')}`,
+    );
+  }
+
+  return dayNumbers.values().next().value as number;
+}
+
+/**
  * Returns the 2 Mishnayot for a given cycle day number (1-based)
  */
 export function getMishnayotForDay(dayNumber: number): MishnaReference[] {

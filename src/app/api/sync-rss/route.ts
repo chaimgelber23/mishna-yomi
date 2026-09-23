@@ -9,7 +9,7 @@ import {
   type StoredEpisodeSyncState,
 } from '@/lib/episode-mapping';
 import { fetchRSSFeed, type ParsedEpisode } from '@/lib/rss';
-import { getDayNumber } from '@/lib/calendar';
+import { getDayNumber, getDayNumberForGlobalIndices } from '@/lib/calendar';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
@@ -79,6 +79,12 @@ export async function POST(request: NextRequest) {
     const unresolved: SyncFailure[] = [];
     const failures: SyncFailure[] = [];
     let skipped = 0;
+    let uploadDateMismatchCount = 0;
+    const uploadDateMismatchExamples: Array<{
+      title: string;
+      uploadDayNumber: number;
+      officialDayNumber: number;
+    }> = [];
 
     for (const episode of episodes) {
       const mapping = resolveEpisodeMapping(episode.title);
@@ -97,6 +103,18 @@ export async function POST(request: NextRequest) {
 
       const first = mapping.units[0];
       const last = mapping.units[mapping.units.length - 1];
+      const uploadDayNumber = getDayNumber(episode.publishedAt);
+      const officialDayNumber = getDayNumberForGlobalIndices(mapping.globalIndices);
+      if (uploadDayNumber !== officialDayNumber) {
+        uploadDateMismatchCount++;
+        if (uploadDateMismatchExamples.length < 10) {
+          uploadDateMismatchExamples.push({
+            title: episode.title,
+            uploadDayNumber,
+            officialDayNumber,
+          });
+        }
+      }
       const desired: DesiredEpisodeSyncState = {
         title: episode.title,
         description: episode.description,
@@ -108,7 +126,7 @@ export async function POST(request: NextRequest) {
         mishnaFrom: first.mishna,
         chapterTo: last.chapter,
         mishnaTo: last.mishna,
-        mishnaDayNumber: getDayNumber(episode.publishedAt),
+        mishnaDayNumber: officialDayNumber,
         globalIndices: mapping.globalIndices,
       };
       const reason = episodeSyncReason(storedByGuid.get(episode.guid), desired);
@@ -204,6 +222,8 @@ export async function POST(request: NextRequest) {
         inserted,
         repaired,
         skipped,
+        uploadDateMismatchCount,
+        uploadDateMismatchExamples,
         unresolvedCount: unresolved.length,
         unresolved,
         errors: failures.length,
