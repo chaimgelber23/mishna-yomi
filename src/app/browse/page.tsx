@@ -173,6 +173,7 @@ export default function BrowsePage() {
   const [selectedChapter, setSelectedChapter]   = useState<number | null>(null);
   const [targetMishna, setTargetMishna]         = useState<number | null>(null);
   const [episodes, setEpisodes]                 = useState<EpisodeStub[]>([]);
+  const [episodesLoadState, setEpisodesLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [mishnaProgress, setMishnaProgress]     = useState<Record<number, MishnaProgressRecord>>({});
   const [progressReady, setProgressReady]       = useState(false);
   const [progressNotice, setProgressNotice]     = useState<'signed-out' | 'error' | null>(null);
@@ -251,17 +252,31 @@ export default function BrowsePage() {
   }, [selectedChapter, selectedTractate, targetMishna]);
 
   useEffect(() => {
-    if (!selectedTractate) { setEpisodes([]); return; }
+    if (!selectedTractate) {
+      setEpisodes([]);
+      setEpisodesLoadState('idle');
+      return;
+    }
 
     const controller = new AbortController();
     setEpisodes([]);
+    setEpisodesLoadState('loading');
     fetch(`/api/episodes?tractate=${encodeURIComponent(selectedTractate.tractate)}`, {
       signal: controller.signal,
     })
-      .then(r => r.json())
-      .then(d => setEpisodes(d.episodes ?? []))
+      .then(response => {
+        if (!response.ok) throw new Error('Episode request failed');
+        return response.json();
+      })
+      .then(data => {
+        setEpisodes(data.episodes ?? []);
+        setEpisodesLoadState('ready');
+      })
       .catch(error => {
-        if (error instanceof Error && error.name !== 'AbortError') setEpisodes([]);
+        if (error instanceof Error && error.name !== 'AbortError') {
+          setEpisodes([]);
+          setEpisodesLoadState('error');
+        }
       });
 
     return () => controller.abort();
@@ -1023,6 +1038,14 @@ export default function BrowsePage() {
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                       Listen
                     </Link>
+                  ) : episodesLoadState === 'loading' || episodesLoadState === 'idle' ? (
+                    <span aria-live="polite" className="text-xs px-3 py-1.5 rounded-full border" style={{ color: 'var(--muted)', borderColor: 'var(--border)' }}>
+                      Checking audio…
+                    </span>
+                  ) : episodesLoadState === 'error' ? (
+                    <span role="status" className="text-xs px-3 py-1.5 rounded-full border" style={{ color: '#991B1B', borderColor: '#FECACA', background: '#FEF2F2' }}>
+                      Audio unavailable
+                    </span>
                   ) : (
                     <span className="text-xs px-3 py-1.5 rounded-full border" style={{ color: 'var(--muted)', borderColor: 'var(--border)' }}>
                       Coming soon

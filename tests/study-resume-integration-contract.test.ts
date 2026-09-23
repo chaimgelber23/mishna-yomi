@@ -27,3 +27,15 @@ test('Progress continuation uses self-study recency instead of an old global gap
   assert.match(source, /const continueHref = nextMishna \? buildBrowseHref\(nextMishna\) : '\/browse'/);
   assert.match(source, /Continue Self-Study/);
 });
+
+test('Browse does not claim audio is coming soon before availability finishes loading', async () => {
+  const source = await readFile(browsePagePath, 'utf8');
+
+  assert.match(source, /setEpisodesLoadState\('loading'\)/);
+  assert.match(source, /setEpisodesLoadState\('ready'\)/);
+  assert.match(source, /setEpisodesLoadState\('error'\)/);
+  assert.match(source, /episodesLoadState === 'loading' \|\| episodesLoadState === 'idle'/);
+  assert.match(source, /Checking audio…/);
+  assert.match(source, /episodesLoadState === 'error'/);
+  assert.match(source, /Audio unavailable/);
+});
